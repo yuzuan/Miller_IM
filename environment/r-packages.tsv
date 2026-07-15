@@ -1,0 +1,16 @@
+package	version	source
+R	4.5.0	CRAN
+BiocParallel	1.40.2	Bioconductor
+data.table	1.18.0	CRAN
+edgeR	4.4.2	Bioconductor
+fgsea	1.36.2	Bioconductor
+ggplot2	4.0.3	CRAN
+limma	3.66.0	Bioconductor
+readxl	1.5.0	CRAN
+Matrix	recorded in R session	CRAN
+SingleCellExperiment	recorded in R session	Bioconductor
+scDblFinder	recorded in R session	Bioconductor
+patchwork	recorded in R session	CRAN
+cowplot	recorded in R session	CRAN
+gridExtra	recorded in R session	CRAN
+

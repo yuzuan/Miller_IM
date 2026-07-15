@@ -1,0 +1,10 @@
+dataset	modality	role	public_location
+GSE174554	snRNA-seq	primary paired recurrence test	https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE174554
+GSE274546	snRNA-seq	independent paired recurrence test	https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE274546
+GSE278456	single-cell myeloid atlas	state localization	https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE278456
+Artzi_GeoMx	GeoMx IBA1-positive regions	paired tissue support	https://doi.org/10.5281/zenodo.16839828
+GSE276841	Visium spatial transcriptomics	linked spatial context	https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE276841
+PDC000514	TMT proteomics	paired protein-level support	https://proteomic.datacommons.cancer.gov/pdc/study/PDC000514
+GSE121810	bulk RNA-seq	anti-PD-1 exposure association	https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE121810
+GSE154795	scRNA-seq	anti-PD-1 exposure association	https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE154795
+

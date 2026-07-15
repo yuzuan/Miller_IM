@@ -1,0 +1,17 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+.Rhistory
+.RData
+.Rproj.user/
+.venv/
+data/
+write/
+figures/
+*.h5ad
+*.h5
+*.rds
+*.rds.gz
+*.mtx
+*.mtx.gz
+

@@ -1,0 +1,31 @@
+cff-version: 1.2.0
+message: "If you use this code or source data, please cite the associated manuscript."
+title: "Miller-IM recurrence analysis"
+type: software
+authors:
+  - family-names: Yu
+    given-names: Zuan
+  - family-names: Tao
+    given-names: Yuqi
+  - family-names: Yu
+    given-names: Tao
+  - family-names: Liang
+    given-names: Risheng
+repository-code: "https://github.com/yuzuan/Miller_IM"
+date-released: 2026-07-15
+version: 1.0.0
+preferred-citation:
+  type: article
+  title: "An inflammatory myeloid program is enriched at recurrence in paired IDH-wildtype glioblastomas"
+  authors:
+    - family-names: Yu
+      given-names: Zuan
+    - family-names: Tao
+      given-names: Yuqi
+    - family-names: Yu
+      given-names: Tao
+    - family-names: Liang
+      given-names: Risheng
+  year: 2026
+  status: manuscript
+

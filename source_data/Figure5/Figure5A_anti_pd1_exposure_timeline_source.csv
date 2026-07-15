@@ -1,0 +1,8 @@
+cohort,lane,lane_label,step,event,event_group,label,label_offset,exposed_preop,starts_postop,label_hjust,label_nudge
+GSE121810,4,GSE121810 neo-adjuvant (n=14),1,Exposure,Exposure,Pembrolizumab,0.22,Yes,No,0.0,0.06
+GSE121810,4,GSE121810 neo-adjuvant (n=14),2,Surgery,Surgery,Resection,-0.22,Yes,No,0.5,0.0
+GSE121810,3,GSE121810 adjuvant-only (n=15),2,Surgery,Surgery,Resection,-0.22,No,Yes,0.5,0.0
+GSE121810,3,GSE121810 adjuvant-only (n=15),3,Exposure,Exposure,Starts after surgery,0.22,No,Yes,1.0,-0.03
+GSE154795,2,GSE154795 PD-1 exposed (n=13),1,Exposure,Exposure,Anti-PD-1,0.22,Yes,No,0.0,0.06
+GSE154795,2,GSE154795 PD-1 exposed (n=13),2,Surgery,Surgery,Recurrent resection,-0.22,Yes,No,0.5,0.0
+GSE154795,1,GSE154795 PD-1-unexposed recurrent (n=8),2,Surgery,Surgery,Recurrent resection,-0.22,No,No,0.5,0.0
