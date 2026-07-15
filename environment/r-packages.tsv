@@ -7,10 +7,9 @@ fgsea	1.36.2	Bioconductor
 ggplot2	4.0.3	CRAN
 limma	3.66.0	Bioconductor
 readxl	1.5.0	CRAN
-Matrix	recorded in R session	CRAN
-SingleCellExperiment	recorded in R session	Bioconductor
-scDblFinder	recorded in R session	Bioconductor
-patchwork	recorded in R session	CRAN
-cowplot	recorded in R session	CRAN
-gridExtra	recorded in R session	CRAN
-
+Matrix	not_pinned	CRAN
+SingleCellExperiment	not_pinned	Bioconductor
+scDblFinder	not_pinned	Bioconductor
+patchwork	not_pinned	CRAN
+cowplot	not_pinned	CRAN
+gridExtra	not_pinned	CRAN
