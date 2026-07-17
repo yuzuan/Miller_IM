@@ -19,7 +19,6 @@ from recurrent_figure_style import COLORS, apply_publication_style, clean_axis, 
 
 ROOT = Path(__file__).resolve().parents[1]
 STEP38 = ROOT / "write/38_independent_cohort_mg_inflammatory_recalculation"
-STEP41_SOURCE = ROOT / "write/41_mg_inflammatory_sci_rebuild/Figure1/source_data"
 STEP42_WRITE = ROOT / "write/42_visual_story_rebuild/Figure1"
 STEP42_FIG = ROOT / "figures/42_visual_story_rebuild/Figure1"
 
@@ -29,8 +28,8 @@ FIG_OUT = ROOT / "figures/45_figure1_program_rebuild/Figure1"
 
 DATASETS = ["GSE174554", "GSE274546"]
 DATASET_COLORS = {"GSE174554": "#3B5B92", "GSE274546": "#159D88"}
-PAIR_COUNTS = {"GSE174554": 18, "GSE274546": 45}
 RAW20_NAME = "Miller_Microglial_Inflammatory_raw_top20"
+EXPECTED_SHARED_LEADING_EDGE = {"CCL4", "CH25H", "FOLR2", "KLF6", "PDK4", "SGK1", "SIGLEC8"}
 
 
 def sha256(path: Path) -> str:
@@ -48,6 +47,56 @@ def format_p(value: float) -> str:
     if value < 0.01:
         return f"{value:.4f}".rstrip("0").rstrip(".")
     return f"{value:.3f}".rstrip("0").rstrip(".")
+
+
+def load_raw20_genes() -> list[str]:
+    provenance = pd.read_csv(STEP38 / "fixed_program_provenance.csv")
+    rows = provenance.loc[provenance["signature"].eq(RAW20_NAME), "genes"]
+    if len(rows) != 1:
+        raise ValueError(f"Expected one {RAW20_NAME} provenance row, found {len(rows)}")
+    genes = str(rows.iloc[0]).split(";")
+    if len(genes) != 20:
+        raise ValueError(f"Expected 20 Miller-IM genes, found {len(genes)}")
+    return genes
+
+
+def enrichment_curve(deg: pd.DataFrame, genes: list[str]) -> pd.DataFrame:
+    frame = deg.copy()
+    frame["rank_stat"] = np.sign(frame["logFC"]) * np.sqrt(np.maximum(frame["F"], 0))
+    frame = frame.loc[np.isfinite(frame["rank_stat"])].sort_values(
+        "rank_stat", ascending=False
+    ).reset_index(drop=True)
+    if frame["gene"].duplicated().any():
+        duplicates = frame.loc[frame["gene"].duplicated(), "gene"].tolist()
+        raise ValueError(f"Duplicate genes in Step38 ranked table: {duplicates[:10]}")
+    hits = frame["gene"].isin(genes).to_numpy()
+    weights = np.abs(frame["rank_stat"].to_numpy(dtype=float))
+    hit_weights = np.where(hits, weights, 0.0)
+    if hit_weights.sum() <= 0 or (~hits).sum() == 0:
+        raise ValueError("Cannot construct enrichment curve from the Step38 ranked table")
+    increments = np.where(
+        hits,
+        hit_weights / hit_weights.sum(),
+        -1.0 / (~hits).sum(),
+    )
+    return pd.DataFrame(
+        {
+            "rank": np.arange(1, len(frame) + 1),
+            "gene": frame["gene"].to_numpy(),
+            "rank_stat": frame["rank_stat"].to_numpy(),
+            "hit": hits,
+            "running_enrichment": np.cumsum(increments),
+        }
+    )
+
+
+def rank_density(frame: pd.DataFrame, bins: int = 75) -> np.ndarray:
+    x = frame["rank_stat_GSE174554"].to_numpy(dtype=float)
+    y = frame["rank_stat_GSE274546"].to_numpy(dtype=float)
+    counts, x_edges, y_edges = np.histogram2d(x, y, bins=bins)
+    xi = np.clip(np.searchsorted(x_edges, x, side="right") - 1, 0, bins - 1)
+    yi = np.clip(np.searchsorted(y_edges, y, side="right") - 1, 0, bins - 1)
+    return np.log1p(counts[xi, yi])
 
 
 def save_panel(fig: mpl.figure.Figure, stem: str) -> tuple[Path, Path]:
@@ -85,16 +134,39 @@ def copy_locked_panel() -> dict[str, str]:
 
 
 def load_gsea_inputs() -> tuple[pd.DataFrame, pd.DataFrame]:
-    curves = pd.read_csv(STEP41_SOURCE / "raw20_gsea_curves.csv.gz")
     statistics = pd.read_csv(STEP38 / "independent_fixed_program_targeted_gsea.csv")
+    is_formal = statistics["formal_testable"].astype(str).str.lower().isin({"true", "t", "1"})
     statistics = statistics.loc[
         statistics["dataset"].isin(DATASETS)
         & statistics["threshold"].eq(20)
         & statistics["pathway"].eq(RAW20_NAME)
-        & statistics["formal_testable"].astype(bool)
+        & is_formal
     ].copy()
     if len(statistics) != 2:
         raise ValueError(f"Expected two formal raw20 GSEA rows, found {len(statistics)}")
+    pair_counts = statistics.set_index("dataset")["n_pairs"].astype(int).to_dict()
+    if pair_counts != {"GSE174554": 17, "GSE274546": 45}:
+        raise ValueError(f"Unexpected formal pair counts in Step38 GSEA: {pair_counts}")
+
+    deg = pd.read_csv(STEP38 / "independent_paired_edger_all_genes.csv")
+    genes = load_raw20_genes()
+    curves = []
+    for dataset in DATASETS:
+        current = deg.loc[
+            deg["dataset"].eq(dataset)
+            & deg["threshold"].eq(20)
+        ].copy()
+        if "formal_testable" in current.columns:
+            current_is_formal = (
+                current["formal_testable"].astype(str).str.lower().isin({"true", "t", "1"})
+            )
+            current = current.loc[current_is_formal].copy()
+        if current.empty:
+            raise ValueError(f"No formal Step38 differential-expression rows for {dataset}")
+        curve = enrichment_curve(current, genes)
+        curve["dataset"] = dataset
+        curves.append(curve)
+    curves = pd.concat(curves, ignore_index=True)
     return curves, statistics
 
 
@@ -111,7 +183,7 @@ def panel_gsea(
     row = statistics.loc[statistics["dataset"].eq(dataset)].iloc[0]
     curve["NES"] = float(row["NES"])
     curve["nominal_P"] = float(row["pval"])
-    curve["n_pairs"] = PAIR_COUNTS[dataset]
+    curve["n_pairs"] = int(row["n_pairs"])
     source = SOURCE_OUT / f"{stem}_source.csv.gz"
     curve.to_csv(source, index=False, compression={"method": "gzip", "mtime": 0})
 
@@ -157,7 +229,7 @@ def panel_gsea(
         1.0,
         1.05,
         f"NES {float(row['NES']):.2f}   P {format_p(float(row['pval']))}\n"
-        f"{PAIR_COUNTS[dataset]} paired patients",
+        f"{int(row['n_pairs'])} paired patients",
         transform=enrichment_ax.transAxes,
         fontsize=6.6,
         color="#555555",
@@ -203,20 +275,48 @@ def panel_gsea(
     return panel_record(panel, stem, f"{dataset} paired pseudobulk raw20 GSEA", source, pdf, png)
 
 
-def panel_rank_rank(statistics: pd.DataFrame) -> dict[str, str]:
+def panel_rank_rank(curves: pd.DataFrame, statistics: pd.DataFrame) -> dict[str, str]:
     stem = "Figure1D_cross_cohort_all_gene_rank_density"
     source = SOURCE_OUT / f"{stem}_source.csv"
-    frame = pd.read_csv(STEP42_WRITE / "source_data" / f"{stem}_source.csv")
+    left = curves.loc[
+        curves["dataset"].eq("GSE174554"),
+        ["gene", "rank", "rank_stat", "hit"],
+    ].rename(
+        columns={
+            "rank": "rank_GSE174554",
+            "rank_stat": "rank_stat_GSE174554",
+            "hit": "program_GSE174554",
+        }
+    )
+    right = curves.loc[
+        curves["dataset"].eq("GSE274546"),
+        ["gene", "rank", "rank_stat", "hit"],
+    ].rename(
+        columns={
+            "rank": "rank_GSE274546",
+            "rank_stat": "rank_stat_GSE274546",
+            "hit": "program_GSE274546",
+        }
+    )
+    frame = left.merge(right, on="gene", how="inner", validate="one_to_one")
+    frame["miller_raw20"] = frame[["program_GSE174554", "program_GSE274546"]].any(axis=1)
+    frame["density"] = rank_density(frame)
     shared_genes = set(shared_leading_edge_table(statistics)["gene"])
     frame["shared_leading_edge"] = frame["gene"].isin(shared_genes)
     frame["labelled"] = frame["shared_leading_edge"]
+
+    background = frame.loc[~frame["miller_raw20"]].sort_values("density")
+    raw20_other = frame.loc[frame["miller_raw20"] & ~frame["shared_leading_edge"]]
+    shared = frame.loc[frame["shared_leading_edge"]]
+    if len(shared) != 7 or len(raw20_other) != 12:
+        raise ValueError(
+            "Expected 7 shared and 12 other measured Miller-IM genes, "
+            f"found {len(shared)} and {len(raw20_other)}"
+        )
     frame.to_csv(source, index=False)
 
     fig = new_figure(92, 83)
     ax = fig.add_axes([0.16, 0.14, 0.76, 0.69])
-    background = frame.loc[~frame["miller_raw20"]].sort_values("density")
-    raw20_other = frame.loc[frame["miller_raw20"] & ~frame["shared_leading_edge"]]
-    shared = frame.loc[frame["shared_leading_edge"]]
     ax.scatter(
         background["rank_stat_GSE174554"],
         background["rank_stat_GSE274546"],
@@ -246,7 +346,6 @@ def panel_rank_rank(statistics: pd.DataFrame) -> dict[str, str]:
         zorder=4,
     )
     label_offsets = {
-        "CCL3": (4, 7),
         "CCL4": (-25, 7),
         "CH25H": (5, 5),
         "SGK1": (-23, -10),
@@ -290,7 +389,7 @@ def panel_rank_rank(statistics: pd.DataFrame) -> dict[str, str]:
     ax.text(
         0.98,
         0.03,
-        f"8 shared leading-edge genes\n{len(raw20_other)} other measured raw20 genes",
+        f"{len(shared)} shared leading-edge genes\n{len(raw20_other)} other measured raw20 genes",
         transform=ax.transAxes,
         ha="right",
         va="bottom",
@@ -311,7 +410,7 @@ def panel_rank_rank(statistics: pd.DataFrame) -> dict[str, str]:
     return panel_record(
         "Figure1D",
         stem,
-        "All-gene rank-stat comparison with eight shared leading-edge genes highlighted",
+        "All-gene rank-stat comparison with seven shared leading-edge genes highlighted",
         source,
         pdf,
         png,
@@ -324,8 +423,11 @@ def shared_leading_edge_table(statistics: pd.DataFrame) -> pd.DataFrame:
         for _, row in statistics.iterrows()
     }
     shared = set.intersection(*(leading_sets[dataset] for dataset in DATASETS))
-    if len(shared) != 8:
-        raise ValueError(f"Expected eight shared leading-edge genes, found {sorted(shared)}")
+    if shared != EXPECTED_SHARED_LEADING_EDGE:
+        raise ValueError(
+            "Unexpected shared leading-edge genes: "
+            f"expected {sorted(EXPECTED_SHARED_LEADING_EDGE)}, found {sorted(shared)}"
+        )
 
     provenance = pd.read_csv(STEP38 / "fixed_program_provenance.csv")
     raw20_genes = provenance.loc[provenance["signature"].eq(RAW20_NAME), "genes"].iloc[0].split(";")
@@ -338,8 +440,15 @@ def shared_leading_edge_table(statistics: pd.DataFrame) -> pd.DataFrame:
         & direction["signature"].eq(RAW20_NAME)
         & direction["gene"].isin(shared)
     ].copy()
-    if len(direction) != 16:
-        raise ValueError(f"Expected sixteen gene-by-cohort rows, found {len(direction)}")
+    if len(direction) != 14:
+        raise ValueError(f"Expected fourteen gene-by-cohort rows, found {len(direction)}")
+    if set(direction["gene"]) != EXPECTED_SHARED_LEADING_EDGE:
+        raise ValueError(f"Unexpected genes in shared direction table: {sorted(direction['gene'].unique())}")
+    per_gene_counts = direction.groupby("gene")["dataset"].nunique().astype(int)
+    if not per_gene_counts.eq(2).all():
+        raise ValueError(f"Each shared gene must be tested in both cohorts: {per_gene_counts.to_dict()}")
+    if int((direction["FDR"] < 0.05).sum()) != 0:
+        raise ValueError("Expected 0/14 shared gene-by-cohort tests at FDR < 0.05")
     direction["shared_leading_edge"] = True
     direction["gene_order"] = direction["gene"].map({gene: idx for idx, gene in enumerate(order)})
     direction["dataset_order"] = direction["dataset"].map({dataset: idx for idx, dataset in enumerate(DATASETS)})
@@ -361,9 +470,13 @@ def panel_shared_leading_edge_heatmap(statistics: pd.DataFrame) -> dict[str, str
     fig = new_figure(86, 80)
     ax = fig.add_axes([0.24, 0.22, 0.55, 0.56])
     image = ax.imshow(matrix.to_numpy(), cmap="RdBu_r", norm=norm, aspect="auto", interpolation="nearest")
+    gsea_rows = statistics.set_index("dataset")
     ax.set_xticks(
         range(len(DATASETS)),
-        ["GSE174554\n18 pairs", "GSE274546\n45 pairs"],
+        [
+            f"GSE174554\n{int(gsea_rows.loc['GSE174554', 'n_pairs'])} pairs",
+            f"GSE274546\n{int(gsea_rows.loc['GSE274546', 'n_pairs'])} pairs",
+        ],
         fontsize=6.8,
     )
     ax.set_yticks(range(len(order)), order, fontsize=7.1)
@@ -386,7 +499,6 @@ def panel_shared_leading_edge_heatmap(statistics: pd.DataFrame) -> dict[str, str
     colorbar.ax.tick_params(labelsize=6.2, length=2)
     colorbar.outline.set_linewidth(0.45)
 
-    gsea_rows = statistics.set_index("dataset")
     fig.text(0.24, 0.95, "Shared leading-edge genes", fontsize=8.5, fontweight="bold", va="top")
     fig.text(
         0.24,
@@ -407,10 +519,10 @@ def panel_shared_leading_edge_heatmap(statistics: pd.DataFrame) -> dict[str, str
         va="top",
         linespacing=1.25,
     )
-    fig.text(0.24, 0.065, "0/16 individual gene tests reached FDR < 0.05", fontsize=5.9, color="#777777", va="top")
+    fig.text(0.24, 0.065, "0/14 individual gene tests reached FDR < 0.05", fontsize=5.9, color="#777777", va="top")
 
     pdf, png = save_panel(fig, stem)
-    return panel_record("Figure1E", stem, "Eight shared leading-edge genes across the two recurrence cohorts", source, pdf, png)
+    return panel_record("Figure1E", stem, "Seven shared leading-edge genes across the two recurrence cohorts", source, pdf, png)
 
 
 def font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
@@ -517,7 +629,7 @@ def main() -> None:
         copy_locked_panel(),
         panel_gsea("GSE174554", "Figure1B", curves, statistics, running_limits, rank_limit),
         panel_gsea("GSE274546", "Figure1C", curves, statistics, running_limits, rank_limit),
-        panel_rank_rank(statistics),
+        panel_rank_rank(curves, statistics),
         panel_shared_leading_edge_heatmap(statistics),
     ]
     contact_pdf, contact_png, contact_source = make_contact_sheet(records)

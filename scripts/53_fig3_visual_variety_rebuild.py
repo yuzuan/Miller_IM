@@ -125,7 +125,7 @@ def shared_genes() -> list[str]:
         .drop_duplicates()
         .tolist()
     )
-    expected = ["PDK4", "SGK1", "CCL3", "CH25H", "SIGLEC8", "KLF6", "FOLR2", "CCL4"]
+    expected = ["PDK4", "SGK1", "CH25H", "SIGLEC8", "KLF6", "FOLR2", "CCL4"]
     if genes != expected:
         raise ValueError(f"Figure1共享leading-edge定义改变: {genes}")
     return genes
@@ -210,7 +210,7 @@ def panel_a(patients: pd.DataFrame) -> dict[str, str]:
         columnspacing=0.8,
     )
 
-    fig.text(0.12, 0.955, "IBA1+ tissue recurrence validation", fontsize=8.5, fontweight="bold", va="top")
+    fig.text(0.12, 0.955, "IBA1+ tissue recurrence support", fontsize=8.5, fontweight="bold", va="top")
     pdf, png = save_panel(fig, stem)
     return record("A", stem, "Patient-level paired GeoMx Miller-IM scores", source, pdf, png)
 
@@ -294,8 +294,8 @@ def panel_b(patients: pd.DataFrame) -> dict[str, str]:
     stem = "Figure3B_shared_gene_patient_fingerprint"
     genes = shared_genes()
     table = strict_gene_delta(patients, genes)
-    if len(table) != 176 or int(table["measured"].sum()) != 154:
-        raise ValueError("B面板必须为22患者×8基因，且7基因可测")
+    if len(table) != 154 or int(table["measured"].sum()) != 132:
+        raise ValueError("B面板必须为22患者×7基因，且6基因可测")
     source = SOURCE_OUT / f"{stem}_source.csv"
     table.to_csv(source, index=False)
 
@@ -621,7 +621,7 @@ def make_preview(records: list[dict[str, str]]) -> tuple[Path, Path, Path, Path]
     panel_font = image_font(58, bold=True)
     section_font = image_font(36, bold=True)
 
-    drawer.text((100, 55), "Independent recurrence validation", fill=RECURRENT, font=section_font)
+    drawer.text((100, 55), "Independent recurrence support", fill=RECURRENT, font=section_font)
     drawer.line((100, 118, 3700, 118), fill="#E8B2AA", width=4)
     drawer.text(
         (100, 1450),
@@ -655,9 +655,9 @@ def write_legend() -> Path:
 
 **Figure 3 | Independent myeloid-enriched tissue validation and spatial niche context of the Miller-IM program.**
 
-**A,** Patient-level paired Miller-IM scores in the independent Artzi et al. GeoMx cohort. Quality-controlled IBA1+ areas of illumination were averaged within each patient and time point before calculating the Miller-IM score from the 18 measurable genes. Lines connect primary and recurrent specimens from the same patient; circle and square markers denote primary and recurrent samples, respectively. Sixteen of 22 paired IDH-wild-type patients were recurrent-higher; the mean paired change was +0.273 (95% CI, +0.094 to +0.452; BH-adjusted sign-flip FDR across three prespecified GeoMx entry definitions = 0.00721). **B,** Patient-level recurrent-minus-primary expression changes for the eight shared leading-edge genes defined in Figure 1, displayed in the same patient order as panel A. Seven genes were measured; CCL4 was not measured. Heatmap colors were clipped symmetrically at the 98th percentile of the absolute patient-gene changes; 4 of 154 measured cells exceeded the display limits. The right-hand summary shows mean paired changes and 95% CIs; filled symbols denote gene-level FDR < 0.05 after correction across all 18 measurable Miller-IM genes. This panel is a gene-level fingerprint and does not replace the Miller-IM score based on 18 measurable genes used in panel A. **C,** H&E-backed Visium maps from two independent untreated primary IDH-wild-type GBMs. Rows denote tumors and columns show the Miller-IM, combined MDSC-like, and MES-like scores. Nineteen of 20 Miller-IM genes were measurable; AC253572.2 was not measured. For each score, the color scale is shared across the two tumors and clipped at the pooled 2nd and 98th percentiles for display. These maps describe multicellular neighborhood context and do not assign MDSC identity to Miller-IM-high spots. **D,** Partial Spearman correlations between the Miller-IM score and combined MDSC-like or MES-like scores after within-tumor rank residualization for total myeloid score. The two tumors are shown as independent points and are not connected. Only effect sizes are shown because the analysis contains two biological tumors and the spot-level tests did not correct for spatial autocorrelation.
+**A,** Patient-level paired Miller-IM scores in the independent Artzi et al. GeoMx cohort. Quality-controlled IBA1+ areas of illumination were averaged within each patient and time point before calculating the Miller-IM score from the 18 measurable genes. Lines connect primary and recurrent specimens from the same patient; circle and square markers denote primary and recurrent samples, respectively. Sixteen of 22 paired IDH-wild-type patients were recurrent-higher; the mean paired change was +0.273 (95% CI, +0.094 to +0.452; BH-adjusted sign-flip FDR across three prespecified GeoMx entry definitions = 0.00721). **B,** Patient-level recurrent-minus-primary expression changes for the seven shared leading-edge genes defined in Figure 1, displayed in the same patient order as panel A. Six genes were measured; CCL4 was not measured. Heatmap colors were clipped symmetrically at the 98th percentile of the absolute patient-gene changes; 3 of 132 measured cells exceeded the display limits. The right-hand summary shows mean paired changes and 95% CIs; filled symbols denote gene-level FDR < 0.05 after correction across all 18 measurable Miller-IM genes. This panel is a gene-level fingerprint and does not replace the Miller-IM score based on 18 measurable genes used in panel A. **C,** H&E-backed Visium maps from two independent untreated primary IDH-wild-type GBMs. Rows denote tumors and columns show the Miller-IM, combined MDSC-like, and MES-like scores. Nineteen of 20 Miller-IM genes were measurable; AC253572.2 was not measured. For each score, the color scale is shared across the two tumors and clipped at the pooled 2nd and 98th percentiles for display. These maps describe multicellular neighborhood context and do not assign MDSC identity to Miller-IM-high spots. **D,** Partial Spearman correlations between the Miller-IM score and combined MDSC-like or MES-like scores after within-tumor rank residualization for total myeloid score. The two tumors are shown as independent points and are not connected. Only effect sizes are shown because the analysis contains two biological tumors and the spot-level tests did not correct for spatial autocorrelation.
 
-Panel A provides independent tissue-level recurrence validation with patient as the statistical unit; panel B decomposes this effect across prespecified leading-edge genes. Figure 2 localized the Miller-IM program preferentially to MCG1/MCG2-like inflammatory-microglial states rather than MDSC-like transcriptional states. Here, panels C-D show that Miller-IM-high Visium spots have positive myeloid-adjusted associations with MDSC/MES-like spatial scores. Cell-state identity and multicellular spatial niche are therefore distinct analytical levels: an inflammatory-microglial program can occur within an MDSC/MES-rich neighborhood. Panels C-D are cross-sectional and do not test recurrence. Treatment-stratified GeoMx analyses, the complete 18-gene forest, and E-/M-MDSC sensitivity analyses are retained as supplementary analyses.
+Panel A provides independent tissue-level recurrence support with patient as the statistical unit; panel B decomposes this effect across prespecified leading-edge genes. Figure 2 localized the Miller-IM program preferentially to MCG1/MCG2-like inflammatory-microglial states rather than MDSC-like transcriptional states. Here, panels C-D show that Miller-IM-high Visium spots have positive myeloid-adjusted associations with MDSC/MES-like spatial scores. Cell-state identity and multicellular spatial niche are therefore distinct analytical levels: an inflammatory-microglial program can occur within an MDSC/MES-rich neighborhood. Panels C-D are cross-sectional and do not test recurrence. Treatment-stratified GeoMx analyses, the complete 18-gene forest, and E-/M-MDSC sensitivity analyses are retained as supplementary analyses.
 """
     path = WRITE_ROOT / "Figure3_legend.md"
     path.write_text(content, encoding="utf-8")

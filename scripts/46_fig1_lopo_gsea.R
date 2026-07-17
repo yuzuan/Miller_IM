@@ -16,16 +16,66 @@ script_arg <- grep("^--file=", commandArgs(FALSE), value = TRUE)
 if (length(script_arg) != 1) stop("Cannot locate the current script.")
 script_path <- normalizePath(sub("^--file=", "", script_arg))
 project_dir <- dirname(dirname(script_path))
-output_dir <- file.path(project_dir, "write", "46_figure1_ef_candidates", "Figure1", "source_data")
+args <- commandArgs(trailingOnly = TRUE)
+if (length(args) > 2L) {
+  stop("Usage: 46_fig1_lopo_gsea.R [output_dir] [step38_dir]")
+}
+output_dir <- if (length(args) >= 1L) {
+  normalizePath(args[[1]], mustWork = FALSE)
+} else {
+  file.path(project_dir, "write", "46_figure1_ef_candidates", "Figure1", "source_data")
+}
 dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
 
 independent_dirs <- c(
   GSE174554 = file.path(project_dir, "write", "34_gse174554_raw_independent_discovery", "03_myeloid"),
   GSE274546 = file.path(project_dir, "write", "36_gse274546_raw_independent_reannotation", "03_myeloid")
 )
-step38_dir <- file.path(project_dir, "write", "38_independent_cohort_mg_inflammatory_recalculation")
+step38_dir <- if (length(args) >= 2L) {
+  normalizePath(args[[2]], mustWork = TRUE)
+} else {
+  file.path(project_dir, "write", "38_independent_cohort_mg_inflammatory_recalculation")
+}
+idh_crosswalk_file <- file.path(
+  project_dir, "config", "GSE174554_formal_pair_IDH_crosswalk.csv"
+)
 threshold <- 20L
 raw20_name <- "Miller_Microglial_Inflammatory_raw_top20"
+
+if (!file.exists(idh_crosswalk_file)) {
+  stop("Missing GSE174554 IDH crosswalk: ", idh_crosswalk_file)
+}
+idh_crosswalk <- read.csv(
+  idh_crosswalk_file, stringsAsFactors = FALSE, check.names = FALSE
+)
+required_idh_columns <- c(
+  "dataset", "pair_key", "primary_sample", "recurrent_sample",
+  "primary_idh", "recurrent_idh", "include_idh_wildtype",
+  "source_citation", "source_file_sha256"
+)
+if (!all(required_idh_columns %in% names(idh_crosswalk))) {
+  stop("GSE174554 IDH crosswalk is missing required columns.")
+}
+idh_flag <- toupper(trimws(as.character(idh_crosswalk$include_idh_wildtype)))
+if (any(!idh_flag %in% c("TRUE", "FALSE"))) {
+  stop("GSE174554 IDH eligibility contains values other than TRUE/FALSE.")
+}
+idh_crosswalk$include_idh_wildtype <- idh_flag == "TRUE"
+expected_supplement_sha256 <- "58e42239d4e105cfbbda6441bd640afbd64e0c55f87e07b1e0aaab0d1eff1c42"
+if (
+  nrow(idh_crosswalk) != 18L ||
+    any(idh_crosswalk$dataset != "GSE174554") ||
+    anyDuplicated(idh_crosswalk$pair_key) ||
+    sum(idh_crosswalk$include_idh_wildtype) != 17L ||
+    !identical(
+      idh_crosswalk$pair_key[!idh_crosswalk$include_idh_wildtype],
+      "GSE174554_pair33"
+    ) ||
+    length(unique(idh_crosswalk$source_file_sha256)) != 1L ||
+    unique(idh_crosswalk$source_file_sha256) != expected_supplement_sha256
+) {
+  stop("GSE174554 IDH crosswalk does not reproduce the audited 17/18 eligibility.")
+}
 
 read_counts <- function(path) {
   x <- read.csv(gzfile(path), row.names = 1, check.names = FALSE)
@@ -57,13 +107,23 @@ load_cohort <- function(dataset) {
   list(counts = counts, meta = meta)
 }
 
-eligible_pairs <- function(meta) {
+eligible_pairs <- function(meta, dataset) {
   keep <- !is.na(meta$pair_key) & nzchar(meta$pair_key) &
     meta$n_myeloid_cells >= threshold & meta$condition %in% c("Primary", "Recurrent")
   meta <- meta[keep, , drop = FALSE]
   tab <- table(meta$pair_key, meta$condition)
   complete <- rownames(tab)[tab[, "Primary"] == 1 & tab[, "Recurrent"] == 1]
-  meta[meta$pair_key %in% complete, , drop = FALSE]
+  meta <- meta[meta$pair_key %in% complete, , drop = FALSE]
+  if (dataset != "GSE174554") return(meta)
+  missing_pairs <- setdiff(unique(meta$pair_key), idh_crosswalk$pair_key)
+  if (length(missing_pairs)) {
+    stop(
+      "GSE174554 eligible pairs are absent from the IDH crosswalk: ",
+      paste(missing_pairs, collapse = ";")
+    )
+  }
+  retained_pairs <- idh_crosswalk$pair_key[idh_crosswalk$include_idh_wildtype]
+  meta[meta$pair_key %in% retained_pairs, , drop = FALSE]
 }
 
 provenance_path <- file.path(step38_dir, "fixed_program_provenance.csv")
@@ -91,7 +151,7 @@ run_fgsea <- function(rank_stat) {
 }
 
 fit_one <- function(cohort, dataset, omitted_patient = NA_character_) {
-  meta <- eligible_pairs(cohort$meta)
+  meta <- eligible_pairs(cohort$meta, dataset)
   if (!is.na(omitted_patient)) meta <- meta[meta$pair_key != omitted_patient, , drop = FALSE]
   counts <- cohort$counts[, meta$unit_id, drop = FALSE]
   meta <- meta[match(colnames(counts), meta$unit_id), , drop = FALSE]
@@ -122,10 +182,23 @@ fit_one <- function(cohort, dataset, omitted_patient = NA_character_) {
 }
 
 cohorts <- setNames(lapply(names(independent_dirs), load_cohort), names(independent_dirs))
+pair_counts_before <- vapply(
+  names(cohorts),
+  function(dataset) {
+    length(unique(eligible_pairs(cohorts[[dataset]]$meta, dataset)$pair_key))
+  },
+  integer(1)
+)
+if (!identical(
+  as.integer(pair_counts_before[c("GSE174554", "GSE274546")]),
+  c(17L, 45L)
+)) {
+  stop("Formal IDH-restricted analyses must contain 17 and 45 pairs.")
+}
 jobs <- list()
 index <- 1L
 for (dataset in names(independent_dirs)) {
-  eligible <- eligible_pairs(cohorts[[dataset]]$meta)
+  eligible <- eligible_pairs(cohorts[[dataset]]$meta, dataset)
   patients <- sort(unique(eligible$pair_key))
   jobs[[index]] <- list(dataset = dataset, omitted_patient = NA_character_)
   index <- index + 1L
@@ -162,10 +235,9 @@ all_results <- all_results[order(
 ), ]
 
 raw20_results <- all_results[all_results$pathway == raw20_name, , drop = FALSE]
-expected_rows <- 2L + 18L + 45L
+expected_rows <- 2L + 17L + 45L
 if (nrow(raw20_results) != expected_rows) stop("Expected ", expected_rows, " raw20 rows, found ", nrow(raw20_results))
 
-pair_counts_before <- c(GSE174554 = 18L, GSE274546 = 45L)
 input_gene_counts <- vapply(cohorts, function(cohort) nrow(cohort$counts), integer(1))
 fold_audit <- unique(raw20_results[, c(
   "dataset", "run_type", "omitted_patient", "n_pairs", "n_tested_genes"
@@ -206,6 +278,17 @@ reproduction_differences <- c(
 )
 if (nrow(comparison) != 2L || any(reproduction_differences > 1e-10)) {
   stop("Full-data GSEA does not reproduce Step38.")
+}
+
+lopo_counts <- table(
+  raw20_results$dataset[raw20_results$run_type == "Leave-one-patient-out"]
+)
+if (
+  unname(lopo_counts[["GSE174554"]]) != 17L ||
+    unname(lopo_counts[["GSE274546"]]) != 45L ||
+    any(raw20_results$omitted_patient == "GSE174554_pair33")
+) {
+  stop("IDH-restricted LOPO folds do not reproduce the expected 17/45 design.")
 }
 
 write.csv(

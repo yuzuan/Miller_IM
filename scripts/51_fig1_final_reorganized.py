@@ -15,6 +15,7 @@ import numpy as np
 import pandas as pd
 from matplotlib.colors import TwoSlopeNorm
 from PIL import Image, ImageDraw, ImageFont, ImageOps
+from scipy.stats import spearmanr
 
 from recurrent_figure_style import apply_publication_style, clean_axis, new_figure
 
@@ -31,9 +32,9 @@ SOURCE_OUT = WRITE_ROOT / "source_data"
 FIG_OUT = ROOT / "figures/51_figure1_final_reorganized/Figure1"
 
 DATASETS = ["GSE174554", "GSE274546"]
-PAIR_COUNTS = {"GSE174554": 18, "GSE274546": 45}
 HIGHLIGHT = "#E64B35"
 RAW20_NAME = "Miller_Microglial_Inflammatory_raw_top20"
+EXPECTED_SHARED_LEADING_EDGE = {"CCL4", "CH25H", "FOLR2", "KLF6", "PDK4", "SGK1", "SIGLEC8"}
 
 
 def sha256(path: Path) -> str:
@@ -42,6 +43,41 @@ def sha256(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def formal_gsea_statistics() -> pd.DataFrame:
+    gsea = pd.read_csv(STEP38 / "independent_fixed_program_targeted_gsea.csv")
+    is_formal = gsea["formal_testable"].astype(str).str.lower().isin({"true", "t", "1"})
+    gsea = gsea.loc[
+        gsea["dataset"].isin(DATASETS)
+        & gsea["threshold"].eq(20)
+        & gsea["pathway"].eq(RAW20_NAME)
+        & is_formal
+    ].copy()
+    if gsea.groupby("dataset").size().to_dict() != {dataset: 1 for dataset in DATASETS}:
+        raise ValueError(
+            "Step38 must contain exactly one formal Miller-IM GSEA row per cohort: "
+            f"{gsea.groupby('dataset').size().to_dict()}"
+        )
+    pair_counts = gsea.set_index("dataset")["n_pairs"].astype(int).to_dict()
+    if pair_counts != {"GSE174554": 17, "GSE274546": 45}:
+        raise ValueError(f"Unexpected formal pair counts in Step38 GSEA: {pair_counts}")
+    return gsea.set_index("dataset").loc[DATASETS]
+
+
+def legend_p(value: float) -> str:
+    if value < 1e-4:
+        return "nominal *P* < 1 × 10⁻⁴"
+    formatted = f"{value:.5f}".rstrip("0").rstrip(".")
+    return f"nominal *P* = {formatted}"
+
+
+def join_labels(labels: list[str]) -> str:
+    if not labels:
+        return "No genes"
+    if len(labels) == 1:
+        return labels[0]
+    return f"{', '.join(labels[:-1])}, and {labels[-1]}"
 
 
 def save_panel(fig: mpl.figure.Figure, stem: str) -> tuple[Path, Path]:
@@ -179,12 +215,19 @@ def panel_d() -> dict[str, str]:
         frame["miller_raw20"].astype(bool) & ~frame["shared_leading_edge"].astype(bool)
     ].copy()
     background = frame.loc[~frame["miller_raw20"].astype(bool)].copy()
-    if len(frame) != 9432 or len(shared) != 8 or len(raw20_other) != 11:
+    if frame["gene"].duplicated().any() or background.empty:
+        raise ValueError("Figure1D source must contain unique genes and a non-empty transcriptome background")
+    if len(shared) != 7 or len(raw20_other) != 12:
         raise ValueError(
             f"Figure1D 数量不符: all={len(frame)}, shared={len(shared)}, other_raw20={len(raw20_other)}"
         )
+    if set(shared["gene"]) != EXPECTED_SHARED_LEADING_EDGE:
+        raise ValueError(
+            "Figure1D 共享 leading-edge 基因不符: "
+            f"expected={sorted(EXPECTED_SHARED_LEADING_EDGE)}, found={sorted(shared['gene'])}"
+        )
 
-    labelled_genes = {"CCL3", "CCL4", "CH25H", "FOLR2", "SGK1"}
+    labelled_genes = {"CCL4", "CH25H", "FOLR2", "PDK4", "SGK1"}
     frame["display_role"] = "transcriptome_background"
     frame.loc[frame["miller_raw20"].astype(bool), "display_role"] = "other_measured_raw20"
     frame.loc[frame["shared_leading_edge"].astype(bool), "display_role"] = "shared_leading_edge"
@@ -226,11 +269,11 @@ def panel_d() -> dict[str, str]:
     )
 
     label_offsets = {
-        "CCL3": (4, 7),
         "CCL4": (-25, 7),
         "CH25H": (5, 5),
         "SGK1": (-23, -10),
         "FOLR2": (5, 7),
+        "PDK4": (5, -10),
     }
     for _, row in shared.loc[shared["gene"].isin(labelled_genes)].iterrows():
         ax.annotate(
@@ -300,10 +343,11 @@ def panel_e() -> dict[str, str]:
     stem = "Figure1E_shared_leading_edge_gene_effects"
     input_path = STEP45_SOURCE / "Figure1E_shared_leading_edge_heatmap_source.csv"
     direction = pd.read_csv(input_path)
-    if len(direction) != 16 or direction["gene"].nunique() != 8:
-        raise ValueError("Figure1E 必须是 8 个基因 × 2 个队列")
+    if len(direction) != 14 or direction["gene"].nunique() != 7:
+        raise ValueError("Figure1E 必须是 7 个基因 × 2 个队列")
     if int((direction["FDR"] < 0.05).sum()) != 0:
         raise ValueError("Figure1E 的正式单基因 FDR 结果与既有结论不符")
+    gsea = formal_gsea_statistics()
     source = SOURCE_OUT / f"{stem}_source.csv"
     direction.to_csv(source, index=False)
 
@@ -328,7 +372,10 @@ def panel_e() -> dict[str, str]:
     )
     ax.set_xticks(
         range(len(DATASETS)),
-        [f"GSE174554\n{PAIR_COUNTS['GSE174554']} pairs", f"GSE274546\n{PAIR_COUNTS['GSE274546']} pairs"],
+        [
+            f"GSE174554\n{int(gsea.loc['GSE174554', 'n_pairs'])} pairs",
+            f"GSE274546\n{int(gsea.loc['GSE274546', 'n_pairs'])} pairs",
+        ],
         fontsize=6.8,
     )
     ax.set_yticks(range(len(order)), order, fontsize=7.1)
@@ -354,7 +401,7 @@ def panel_e() -> dict[str, str]:
     fig.text(
         0.24,
         0.085,
-        "0/16 gene-by-cohort tests reached FDR < 0.05",
+        "0/14 gene-by-cohort tests reached FDR < 0.05",
         fontsize=5.9,
         color="#777777",
         va="bottom",
@@ -363,7 +410,7 @@ def panel_e() -> dict[str, str]:
     return record(
         "E",
         stem,
-        "Effect sizes of the eight shared leading-edge genes in both cohorts",
+        "Effect sizes of the seven shared leading-edge genes in both cohorts",
         source,
         pdf,
         png,
@@ -423,6 +470,11 @@ def build_raw20_definition() -> Path:
         for _, row in gsea.iterrows()
     }
     shared = set.intersection(*(leading[dataset] for dataset in DATASETS))
+    if shared != EXPECTED_SHARED_LEADING_EDGE:
+        raise ValueError(
+            "共享 leading-edge 基因不符: "
+            f"expected={sorted(EXPECTED_SHARED_LEADING_EDGE)}, found={sorted(shared)}"
+        )
 
     rows: list[dict[str, object]] = []
     direction_index = direction.set_index(["dataset", "gene"])
@@ -450,8 +502,8 @@ def build_raw20_definition() -> Path:
         raise ValueError(f"raw20 可测数量不符: {tested_counts}")
     if set(table.loc[~table["tested"], "gene"]) != {"AC253572.2"}:
         raise ValueError("raw20 唯一缺失基因应为 AC253572.2")
-    if int(table["shared_leading_edge"].sum()) != 16:
-        raise ValueError("共享 leading-edge 应为 8 基因 × 2 队列")
+    if int(table["shared_leading_edge"].sum()) != 14:
+        raise ValueError("共享 leading-edge 应为 7 基因 × 2 队列")
     path = SOURCE_OUT / "Figure1_raw20_definition_source.csv"
     table.to_csv(path, index=False)
     return path
@@ -523,11 +575,67 @@ def make_preview(records: list[dict[str, str]]) -> tuple[Path, Path, Path, Path]
 def write_legend(raw20_path: Path) -> Path:
     raw20 = pd.read_csv(raw20_path).sort_values("raw20_order")["gene"].drop_duplicates().tolist()
     raw20_text = ", ".join(raw20)
+    gsea = formal_gsea_statistics()
+
+    rank_frame = pd.read_csv(SOURCE_OUT / "Figure1D_shared_raw20_outliers_source.csv")
+    shared_count = int(rank_frame["shared_leading_edge"].astype(bool).sum())
+    other_count = int(
+        (
+            rank_frame["miller_raw20"].astype(bool)
+            & ~rank_frame["shared_leading_edge"].astype(bool)
+        ).sum()
+    )
+    if (shared_count, other_count) != (7, 12):
+        raise ValueError(
+            f"Unexpected measured Miller-IM partition in Figure1D: shared={shared_count}, other={other_count}"
+        )
+    rho, _ = spearmanr(
+        rank_frame["rank_stat_GSE174554"],
+        rank_frame["rank_stat_GSE274546"],
+    )
+    label_order = ["CCL4", "CH25H", "FOLR2", "PDK4", "SGK1"]
+    labelled = [
+        gene
+        for gene in label_order
+        if gene in set(rank_frame.loc[rank_frame["display_label"].ne(""), "display_label"])
+    ]
+    if labelled != label_order or "CCL3" in labelled:
+        raise ValueError(f"Unexpected Figure1D display labels: {labelled}")
+
+    effects = pd.read_csv(SOURCE_OUT / "Figure1E_shared_leading_edge_gene_effects_source.csv")
+    n_gene_tests = len(effects)
+    significant_gene_tests = int((effects["FDR"] < 0.05).sum())
+    if (effects["gene"].nunique(), n_gene_tests, significant_gene_tests) != (7, 14, 0):
+        raise ValueError(
+            "Unexpected Figure1E test audit: "
+            f"genes={effects['gene'].nunique()}, tests={n_gene_tests}, FDR<0.05={significant_gene_tests}"
+        )
+
+    lopo = pd.read_csv(SOURCE_OUT / "Figure1F_leave_one_patient_out_raw20_gsea.csv")
+    lopo = lopo.loc[lopo["run_type"].eq("Leave-one-patient-out")].copy()
+    lopo_counts = lopo.groupby("dataset").size().astype(int).to_dict()
+    expected_counts = gsea["n_pairs"].astype(int).to_dict()
+    if lopo_counts != expected_counts:
+        raise ValueError(f"Unexpected Figure1F LOPO counts: {lopo_counts}")
+    positive_counts = lopo.assign(positive=lopo["NES"] > 0).groupby("dataset")["positive"].sum().astype(int).to_dict()
+    significant_counts = (
+        lopo.assign(significant=lopo["nominal_P"] < 0.05)
+        .groupby("dataset")["significant"]
+        .sum()
+        .astype(int)
+        .to_dict()
+    )
+    max_p_row = lopo.loc[lopo["nominal_P"].idxmax()]
+    max_p = float(max_p_row["nominal_P"])
+    max_p_dataset = str(max_p_row["dataset"])
+
+    pair_174554 = int(gsea.loc["GSE174554", "n_pairs"])
+    pair_274546 = int(gsea.loc["GSE274546", "n_pairs"])
     content = f"""# Figure 1 legend
 
 **Figure 1 | The 20-gene Miller-derived inflammatory microglial program (Miller-IM program) is enriched at recurrence in two independent paired GBM cohorts.**
 
-**A,** Study design. GSE174554 and GSE274546 were reconstructed independently, pan-myeloid cells were reclustered with patient-level Harmony correction, and recurrence was tested using paired patient-level analyses (18 and 45 matched patients, respectively). **B-C,** Preranked GSEA of the fixed Miller-IM program using paired raw-count pseudobulk differential-expression ranks. Positive normalized enrichment scores indicate recurrent enrichment. GSE174554: NES = 2.32, nominal *P* < 1 × 10⁻⁴; GSE274546: NES = 1.80, nominal *P* = 0.00398. **D,** Genome-wide paired rank statistics in the two cohorts. Filled red symbols mark the eight measurable Miller-IM genes present in both cohort-specific GSEA leading edges; open red symbols mark the other measurable Miller-IM genes. Only CCL3, CCL4, CH25H, FOLR2, and SGK1 are labelled to avoid over-annotation. Because filled-symbol membership is defined by the intersection of the two leading edges, their joint positive-quadrant position is descriptive and partly expected by construction; this panel is not an independent single-gene replication test. Genome-wide rank correlation was low (Spearman rₛ = 0.16) and is provided here only as background context, not as the panel claim. **E,** Recurrent-versus-primary log₂ fold changes of the eight shared leading-edge genes. None of the 16 gene-by-cohort tests reached FDR < 0.05, supporting interpretation at the program rather than single-gene level. **F,** Leave-one-patient-out sensitivity analysis of the paired pseudobulk Miller-IM GSEA. Normalized enrichment scores remained positive and nominal *P* remained < 0.05 for all 18/18 and 45/45 omissions; the maximum nominal *P* was 0.0311 in GSE274546. Diamonds show full-data estimates; filled circles denote nominal *P* < 0.05.
+**A,** Study design. GSE174554 and GSE274546 were reconstructed independently, their pan-myeloid compartments were reclustered separately, and recurrence was tested using paired patient-level analyses ({pair_174554} and {pair_274546} matched IDH-wild-type patients, respectively). **B-C,** Preranked GSEA of the fixed Miller-IM program using paired raw-count pseudobulk differential-expression ranks. Positive normalized enrichment scores indicate recurrent enrichment. GSE174554: NES = {float(gsea.loc['GSE174554', 'NES']):.2f}, {legend_p(float(gsea.loc['GSE174554', 'pval']))}; GSE274546: NES = {float(gsea.loc['GSE274546', 'NES']):.2f}, {legend_p(float(gsea.loc['GSE274546', 'pval']))}. **D,** Genome-wide paired rank statistics in the two cohorts. Filled red symbols mark the {shared_count} measurable Miller-IM genes present in both cohort-specific GSEA leading edges; open red symbols mark the other {other_count} measurable Miller-IM genes. Only {join_labels(labelled)} are labelled to avoid over-annotation. Because filled-symbol membership is defined by the intersection of the two leading edges, their joint positive-quadrant position is descriptive and partly expected by construction; this panel is not an independent single-gene replication test. Genome-wide rank correlation was low (Spearman rₛ = {rho:.2f}) and is provided here only as background context, not as the panel claim. **E,** Recurrent-versus-primary log₂ fold changes of the {shared_count} shared leading-edge genes. {significant_gene_tests}/{n_gene_tests} gene-by-cohort tests reached FDR < 0.05, supporting interpretation at the program rather than single-gene level. **F,** Leave-one-patient-out sensitivity analysis of the paired pseudobulk Miller-IM GSEA. Normalized enrichment scores remained positive in {positive_counts['GSE174554']}/{lopo_counts['GSE174554']} and {positive_counts['GSE274546']}/{lopo_counts['GSE274546']} omissions; nominal *P* remained < 0.05 in {significant_counts['GSE174554']}/{lopo_counts['GSE174554']} and {significant_counts['GSE274546']}/{lopo_counts['GSE274546']} omissions, respectively. The maximum nominal *P* was {max_p:.4g} in {max_p_dataset}. Diamonds show full-data estimates; filled circles denote nominal *P* < 0.05.
 
 The fixed Miller-IM gene set was defined a priori from Miller et al. Supplementary Table 2: {raw20_text}. Nineteen of 20 genes were measurable in each cohort; AC253572.2 was not measured. Statistical unit: patient. Panel D is a descriptive cross-cohort background view; panels B, C, and F provide the formal program-level recurrence evidence.
 """
@@ -540,7 +648,7 @@ def write_result(manifest_path: Path, legend_path: Path, raw20_path: Path) -> No
     content = f"""# Figure 1 final reorganization
 
 - Final panel mapping: A design; B-C independent Miller-IM GSEA; D all-gene background with shared leading-edge Miller-IM genes; E shared leading-edge gene effects; F leave-one-patient-out stability.
-- D contains no naked genome-wide correlation annotation and labels only CCL3, CCL4, CH25H, FOLR2, and SGK1.
+- D contains no naked genome-wide correlation annotation and labels only CCL4, CH25H, FOLR2, PDK4, and SGK1.
 - D and E are unique files; the historical Step46 duplicate letter assignment is not carried forward.
 - All six independent panels are letter-free. Letters occur only in the review preview.
 - Manifest: `{manifest_path}`

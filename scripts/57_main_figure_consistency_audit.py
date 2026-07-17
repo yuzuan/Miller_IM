@@ -128,12 +128,20 @@ def audit_delivery() -> None:
 def audit_figure1() -> None:
     base = ROOT / "write/51_figure1_final_reorganized/Figure1/source_data"
     design = pd.read_csv(base / "Figure1A_paired_cohort_design_source.csv").set_index("dataset")
+    design_text = design.reset_index().astype(str).to_csv(index=False)
+    local_roots = ("/" + "Users/", "/" + "Volumes/")
+    add(
+        "Figure1",
+        "A source contains no local paths",
+        all(root not in design_text for root in local_roots),
+        "public-safe fields only",
+    )
     add("Figure1", "A cohort inputs", design["input_libraries_or_matrices"].to_dict() == {"GSE174554": 91, "GSE274546": 111}, str(design["input_libraries_or_matrices"].to_dict()))
-    add("Figure1", "A clean myeloid cells", design["clean_myeloid"].to_dict() == {"GSE174554": 23344, "GSE274546": 68109}, str(design["clean_myeloid"].to_dict()))
-    add("Figure1", "A paired patients", design["formal_pairs_threshold20"].to_dict() == {"GSE174554": 18, "GSE274546": 45}, str(design["formal_pairs_threshold20"].to_dict()))
+    add("Figure1", "A analyzed myeloid cells", design["clean_myeloid"].to_dict() == {"GSE174554": 12489, "GSE274546": 55568}, str(design["clean_myeloid"].to_dict()))
+    add("Figure1", "A paired patients", design["formal_pairs_threshold20"].to_dict() == {"GSE174554": 17, "GSE274546": 45}, str(design["formal_pairs_threshold20"].to_dict()))
 
     expected_gsea = {
-        "GSE174554": (2.3157685724298, 4.13267973361141e-7, 18),
+        "GSE174554": (2.4290789842056, 4.00136234233155e-7, 17),
         "GSE274546": (1.79932425427, 0.00397813985660199, 45),
     }
     for panel, cohort in [("B", "GSE174554"), ("C", "GSE274546")]:
@@ -145,18 +153,26 @@ def audit_figure1() -> None:
 
     rank = pd.read_csv(base / "Figure1D_shared_raw20_outliers_source.csv")
     counts = (len(rank), int(rank["miller_raw20"].sum()), int(rank["shared_leading_edge"].sum()), int(rank["display_label"].fillna("").ne("").sum()))
-    add("Figure1", "D all-gene/shared-gene counts", counts == (9432, 19, 8, 5), str(counts))
+    expected_labels = {"CCL4", "CH25H", "FOLR2", "PDK4", "SGK1"}
+    observed_labels = set(rank.loc[rank["display_label"].fillna("").ne(""), "display_label"])
+    rank_passed = (
+        len(rank) > 9000
+        and rank["gene"].nunique() == len(rank)
+        and counts[1:] == (19, 7, 5)
+        and observed_labels == expected_labels
+    )
+    add("Figure1", "D all-gene/shared-gene counts", rank_passed, f"{counts}; labels={sorted(observed_labels)}")
     effects = pd.read_csv(base / "Figure1E_shared_leading_edge_gene_effects_source.csv")
-    add("Figure1", "E gene-by-cohort tests", len(effects) == 16 and effects["gene"].nunique() == 8 and int((effects["FDR"] < 0.05).sum()) == 0, f"rows={len(effects)}; genes={effects['gene'].nunique()}; FDR<0.05={(effects['FDR'] < 0.05).sum()}")
+    add("Figure1", "E gene-by-cohort tests", len(effects) == 14 and effects["gene"].nunique() == 7 and int((effects["FDR"] < 0.05).sum()) == 0, f"rows={len(effects)}; genes={effects['gene'].nunique()}; FDR<0.05={(effects['FDR'] < 0.05).sum()}")
     lopo = pd.read_csv(base / "Figure1F_leave_one_patient_out_summary.csv").set_index("dataset")
     passed = (
-        int(lopo.loc["GSE174554", "positive_NES_folds"]) == 18
+        int(lopo.loc["GSE174554", "positive_NES_folds"]) == 17
         and int(lopo.loc["GSE274546", "positive_NES_folds"]) == 45
-        and int(lopo.loc["GSE174554", "nominal_P_lt_0_05_folds"]) == 18
+        and int(lopo.loc["GSE174554", "nominal_P_lt_0_05_folds"]) == 17
         and int(lopo.loc["GSE274546", "nominal_P_lt_0_05_folds"]) == 45
         and close(lopo.loc["GSE274546", "max_nominal_P"], 0.0311, atol=5e-5)
     )
-    add("Figure1", "F LOPO stability", passed, "positive 18/18, 45/45; nominal P<0.05 18/18, 45/45; max 0.0311")
+    add("Figure1", "F LOPO stability", passed, "positive 17/17, 45/45; nominal P<0.05 17/17, 45/45; max 0.0311")
 
 
 def audit_figure2() -> None:
@@ -222,7 +238,7 @@ def audit_figure3() -> None:
     measured = fingerprint["measured"].astype(bool)
     clipped = int((fingerprint.loc[measured, "gene_delta"].abs() > fingerprint.loc[measured, "color_limit"]).sum())
     significant = set(fingerprint.loc[measured & (fingerprint["gene_fdr"] < 0.05), "gene"])
-    add("Figure3", "B gene fingerprint", len(fingerprint) == 176 and int(measured.sum()) == 154 and set(fingerprint.loc[~measured, "gene"]) == {"CCL4"} and clipped == 4 and significant == {"CH25H", "FOLR2"}, f"176 rows; measured={measured.sum()}; clipped={clipped}; significant={sorted(significant)}")
+    add("Figure3", "B gene fingerprint", len(fingerprint) == 154 and int(measured.sum()) == 132 and set(fingerprint.loc[~measured, "gene"]) == {"CCL4"} and clipped == 3 and significant == {"CH25H", "FOLR2"}, f"154 rows; measured={measured.sum()}; clipped={clipped}; significant={sorted(significant)}")
 
     spatial = pd.read_csv(base / "Figure3C_spatial_score_atlas_source.csv.gz")
     counts = spatial["sample"].value_counts().to_dict()

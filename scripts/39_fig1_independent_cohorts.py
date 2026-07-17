@@ -32,6 +32,7 @@ STEP_DIRS = {
 }
 STEP38 = ROOT / "write/38_independent_cohort_mg_inflammatory_recalculation"
 
+DATASETS = ["GSE174554", "GSE274546"]
 RAW20 = [
     "PDK4", "P2RY13", "USP53", "KLF2", "RHOB", "BHLHE41", "CTTNBP2", "SGK1",
     "ITM2C", "GSTM3", "CCL3", "CH25H", "P2RY12", "JUN", "SIGLEC8", "KLF6",
@@ -90,7 +91,55 @@ def dense_mean_and_pct(x) -> tuple[np.ndarray, np.ndarray]:
     return mean, pct
 
 
+def formal_analysis_workflow() -> pd.DataFrame:
+    audit_path = STEP38 / "independent_input_pair_audit.csv"
+    audit = pd.read_csv(audit_path)
+    required = {
+        "dataset",
+        "threshold",
+        "n_pairs",
+        "n_cells_primary",
+        "n_cells_recurrent",
+    }
+    if not required.issubset(audit.columns):
+        raise ValueError(f"Missing Step38 pair-audit columns: {sorted(required - set(audit.columns))}")
+    formal = audit.loc[
+        audit["dataset"].isin(DATASETS)
+        & audit["threshold"].eq(20)
+    ].copy()
+    if "formal_testable" in formal.columns:
+        is_formal = formal["formal_testable"].astype(str).str.lower().isin({"true", "t", "1"})
+        formal = formal.loc[is_formal].copy()
+    if formal.groupby("dataset").size().to_dict() != {dataset: 1 for dataset in DATASETS}:
+        raise ValueError(
+            "Step38 pair audit must contain exactly one formal threshold-20 row per cohort: "
+            f"{formal.groupby('dataset').size().to_dict()}"
+        )
+    formal["clean_myeloid"] = (
+        pd.to_numeric(formal["n_cells_primary"], errors="raise")
+        + pd.to_numeric(formal["n_cells_recurrent"], errors="raise")
+    ).astype(int)
+    formal["formal_pairs_threshold20"] = pd.to_numeric(formal["n_pairs"], errors="raise").astype(int)
+    formal["input_libraries_or_matrices"] = formal["dataset"].map(
+        {"GSE174554": 91, "GSE274546": 111}
+    )
+    formal["cell_count_scope"] = "IDH-wildtype cells included in the formal threshold-20 analysis"
+    return formal[
+        [
+            "dataset",
+            "input_libraries_or_matrices",
+            "clean_myeloid",
+            "formal_pairs_threshold20",
+            "n_cells_primary",
+            "n_cells_recurrent",
+            "cell_count_scope",
+        ]
+    ].sort_values("dataset").reset_index(drop=True)
+
+
 def panel_workflow() -> None:
+    source = formal_analysis_workflow()
+    workflow = source.set_index("dataset")
     fig, ax = plt.subplots(figsize=(8.1, 3.1))
     ax.set_xlim(0, 12)
     ax.set_ylim(0, 6.2)
@@ -112,18 +161,32 @@ def panel_workflow() -> None:
     box(6.95, 3.15, 4.4, 0.82, "Independent QC, doublet removal,\nHVG/PCA/Harmony/Leiden", "#666666")
     for x in (2.85, 9.15):
         ax.annotate("", xy=(x, 2.48), xytext=(x, 3.12), arrowprops=dict(arrowstyle="-|>", color="#666666", lw=1.0))
-    box(0.65, 1.45, 4.4, 0.85, "23,344 clean myeloid\n18 paired patients (>=20 cells/side)", DATASET_COLORS["GSE174554"], fill="#F3F6FA")
-    box(6.95, 1.45, 4.4, 0.85, "68,109 clean myeloid\n45 paired patients (>=20 cells/side)", DATASET_COLORS["GSE274546"], fill="#FDF2EF")
+    gse174554 = workflow.loc["GSE174554"]
+    gse274546 = workflow.loc["GSE274546"]
+    box(
+        0.65,
+        1.45,
+        4.4,
+        0.85,
+        f"{int(gse174554.clean_myeloid):,} analyzed myeloid cells\n"
+        f"{int(gse174554.formal_pairs_threshold20)} paired patients (>=20 cells/side)",
+        DATASET_COLORS["GSE174554"],
+        fill="#F3F6FA",
+    )
+    box(
+        6.95,
+        1.45,
+        4.4,
+        0.85,
+        f"{int(gse274546.clean_myeloid):,} analyzed myeloid cells\n"
+        f"{int(gse274546.formal_pairs_threshold20)} paired patients (>=20 cells/side)",
+        DATASET_COLORS["GSE274546"],
+        fill="#FDF2EF",
+    )
     for x in (2.85, 9.15):
         ax.annotate("", xy=(6.0, 0.75), xytext=(x, 1.4), arrowprops=dict(arrowstyle="-|>", color="#666666", lw=1.0))
     box(3.75, 0.05, 4.5, 0.68, "Paired raw-count pseudobulk\nedgeR + fixed-program GSEA", "#00A087", fill="#F0FAF7", weight="bold")
     ax.text(6, -0.18, "Patient is the statistical replicate", ha="center", va="top", color="#555555", fontsize=7)
-    source = pd.DataFrame({
-        "dataset": ["GSE174554", "GSE274546"],
-        "input_libraries_or_matrices": [91, 111],
-        "clean_myeloid": [23344, 68109],
-        "formal_pairs_threshold20": [18, 45],
-    })
     source.to_csv(FIG1_DATA / "cohort_workflow.csv", index=False)
     save_panel(fig, FIG1_OUT, "cohort_independent_processing")
 

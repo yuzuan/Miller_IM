@@ -39,16 +39,44 @@ MARKER_BLOCKS = {
     "Monocyte": ["VCAN", "FCN1", "S100A8"],
     "cDC": ["FCER1A", "CD1C", "CLEC10A"],
 }
-PAIR_COUNTS = {"GSE174554": 18, "GSE274546": 45}
+RAW20_NAME = "Miller_Microglial_Inflammatory_raw_top20"
+
+
+def enrichment_curve(deg: pd.DataFrame, genes: list[str]) -> pd.DataFrame:
+    frame = deg.copy()
+    frame["rank_stat"] = np.sign(frame["logFC"]) * np.sqrt(np.maximum(frame["F"], 0))
+    frame = frame.loc[np.isfinite(frame["rank_stat"])].sort_values(
+        "rank_stat", ascending=False
+    ).reset_index(drop=True)
+    if frame["gene"].duplicated().any():
+        duplicates = frame.loc[frame["gene"].duplicated(), "gene"].tolist()
+        raise ValueError(f"Duplicate genes in Step38 ranked table: {duplicates[:10]}")
+    hits = frame["gene"].isin(genes).to_numpy()
+    weights = np.abs(frame["rank_stat"].to_numpy(dtype=float))
+    hit_weights = np.where(hits, weights, 0.0)
+    if hit_weights.sum() <= 0 or (~hits).sum() == 0:
+        raise ValueError("Cannot construct enrichment curve from the Step38 ranked table")
+    increments = np.where(
+        hits,
+        hit_weights / hit_weights.sum(),
+        -1.0 / (~hits).sum(),
+    )
+    return pd.DataFrame(
+        {
+            "rank": np.arange(1, len(frame) + 1),
+            "gene": frame["gene"].to_numpy(),
+            "rank_stat": frame["rank_stat"].to_numpy(),
+            "hit": hits,
+            "running_enrichment": np.cumsum(increments),
+        }
+    )
 
 
 def prepare_sources() -> None:
     SOURCE_OUT.mkdir(parents=True, exist_ok=True)
     FIG_OUT.mkdir(parents=True, exist_ok=True)
     required = [
-        "cohort_workflow.csv",
         "identity_marker_dotplot.csv",
-        "raw20_gsea_curves.csv.gz",
         "umap_identity_GSE174554.csv.gz",
         "umap_identity_GSE274546.csv.gz",
     ]
@@ -58,15 +86,91 @@ def prepare_sources() -> None:
             raise FileNotFoundError(src)
         shutil.copy2(src, SOURCE_OUT / name)
 
+    audit = pd.read_csv(STEP38 / "independent_input_pair_audit.csv")
+    audit_required = {
+        "dataset",
+        "threshold",
+        "n_pairs",
+        "n_cells_primary",
+        "n_cells_recurrent",
+    }
+    if not audit_required.issubset(audit.columns):
+        raise ValueError(f"Missing Step38 pair-audit columns: {sorted(audit_required - set(audit.columns))}")
+    workflow = audit.loc[
+        audit["dataset"].isin(DATASETS)
+        & audit["threshold"].eq(20)
+    ].copy()
+    if "formal_testable" in workflow.columns:
+        is_formal = workflow["formal_testable"].astype(str).str.lower().isin({"true", "t", "1"})
+        workflow = workflow.loc[is_formal].copy()
+    if workflow.groupby("dataset").size().to_dict() != {dataset: 1 for dataset in DATASETS}:
+        raise ValueError(
+            "Step38 pair audit must contain exactly one formal threshold-20 row per cohort: "
+            f"{workflow.groupby('dataset').size().to_dict()}"
+        )
+    workflow["input_libraries_or_matrices"] = workflow["dataset"].map(
+        {"GSE174554": 91, "GSE274546": 111}
+    )
+    workflow["clean_myeloid"] = (
+        pd.to_numeric(workflow["n_cells_primary"], errors="raise")
+        + pd.to_numeric(workflow["n_cells_recurrent"], errors="raise")
+    ).astype(int)
+    workflow["formal_pairs_threshold20"] = pd.to_numeric(
+        workflow["n_pairs"], errors="raise"
+    ).astype(int)
+    workflow["cell_count_scope"] = "IDH-wildtype cells included in the formal threshold-20 analysis"
+    workflow[
+        [
+            "dataset",
+            "input_libraries_or_matrices",
+            "clean_myeloid",
+            "formal_pairs_threshold20",
+            "n_cells_primary",
+            "n_cells_recurrent",
+            "cell_count_scope",
+        ]
+    ].sort_values("dataset").to_csv(SOURCE_OUT / "cohort_workflow.csv", index=False)
+
     gsea = pd.read_csv(STEP38 / "independent_fixed_program_targeted_gsea.csv")
+    gsea_is_formal = gsea["formal_testable"].astype(str).str.lower().isin({"true", "t", "1"})
     gsea = gsea[
         gsea["dataset"].isin(DATASETS)
         & gsea["threshold"].eq(20)
-        & gsea["pathway"].eq("Miller_Microglial_Inflammatory_raw_top20")
+        & gsea["pathway"].eq(RAW20_NAME)
+        & gsea_is_formal
     ].copy()
     if len(gsea) != 2:
         raise ValueError(f"Expected two primary GSEA rows, found {len(gsea)}")
+    pair_counts = gsea.set_index("dataset")["n_pairs"].astype(int).to_dict()
+    if pair_counts != {"GSE174554": 17, "GSE274546": 45}:
+        raise ValueError(f"Unexpected formal pair counts in Step38 GSEA: {pair_counts}")
     gsea.to_csv(SOURCE_OUT / "primary_gsea_statistics.csv", index=False)
+
+    provenance = pd.read_csv(STEP38 / "fixed_program_provenance.csv")
+    raw20_rows = provenance.loc[provenance["signature"].eq(RAW20_NAME), "genes"]
+    if len(raw20_rows) != 1:
+        raise ValueError(f"Expected one {RAW20_NAME} provenance row, found {len(raw20_rows)}")
+    raw20_genes = str(raw20_rows.iloc[0]).split(";")
+    deg = pd.read_csv(STEP38 / "independent_paired_edger_all_genes.csv")
+    curves = []
+    for dataset in DATASETS:
+        current = deg.loc[
+            deg["dataset"].eq(dataset)
+            & deg["threshold"].eq(20)
+        ].copy()
+        if "formal_testable" in current.columns:
+            is_formal = current["formal_testable"].astype(str).str.lower().isin({"true", "t", "1"})
+            current = current.loc[is_formal].copy()
+        if current.empty:
+            raise ValueError(f"No formal Step38 differential-expression rows for {dataset}")
+        curve = enrichment_curve(current, raw20_genes)
+        curve["dataset"] = dataset
+        curves.append(curve)
+    pd.concat(curves, ignore_index=True).to_csv(
+        SOURCE_OUT / "raw20_gsea_curves.csv.gz",
+        index=False,
+        compression={"method": "gzip", "mtime": 0},
+    )
 
 
 def panel_study_design() -> None:
@@ -101,7 +205,7 @@ def panel_study_design() -> None:
         ax.text(x + widths - 0.02, 0.69, subtitles[dataset], fontsize=7, color=COLORS["neutral"], ha="right", va="top")
         metrics = [
             ("Input", f"{int(row.input_libraries_or_matrices):,} libraries/matrices"),
-            ("Myeloid", f"{int(row.clean_myeloid):,} cells"),
+            ("Analyzed", f"{int(row.clean_myeloid):,} myeloid cells"),
             ("Paired", f"{int(row.formal_pairs_threshold20)} patients"),
         ]
         for i, (label, value) in enumerate(metrics):
@@ -258,7 +362,7 @@ def panel_gsea(dataset: str, stem: str) -> None:
     ax.text(
         1.0,
         1.035,
-        f"NES {row.NES:.2f}   nominal P {nominal_p:.2g}   n={PAIR_COUNTS[dataset]} pairs",
+        f"NES {row.NES:.2f}   nominal P {nominal_p:.2g}   n={int(row.n_pairs)} pairs",
         transform=ax.transAxes,
         fontsize=7,
         ha="right",

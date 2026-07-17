@@ -501,8 +501,8 @@ def plot_flowchart(step38: pd.DataFrame, geomx: dict[str, pd.DataFrame], spatial
     )
     g174 = step38.loc[step38["dataset"].eq("GSE174554")].iloc[0]
     g274 = step38.loc[step38["dataset"].eq("GSE274546")].iloc[0]
-    draw_box("g174", [g174["label"], f"18 pairs", f"NES={g174['NES']:.3f}", f"nominal P={g174['nominal_p']:.2g}"], NPG["blue"])
-    draw_box("g274", [g274["label"], f"45 pairs", f"NES={g274['NES']:.3f}", f"nominal P={g274['nominal_p']:.2g}"], NPG["teal"])
+    draw_box("g174", [g174["label"], f"{int(g174['n_pairs'])} pairs", f"NES={g174['NES']:.3f}", f"nominal P={g174['nominal_p']:.2g}"], NPG["blue"])
+    draw_box("g274", [g274["label"], f"{int(g274['n_pairs'])} pairs", f"NES={g274['NES']:.3f}", f"nominal P={g274['nominal_p']:.2g}"], NPG["teal"])
     draw_box(
         "geomx",
         [

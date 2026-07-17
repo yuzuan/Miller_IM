@@ -28,3 +28,16 @@ $MILLER_IM_DATA_ROOT/
 
 The manifest-building scripts create the two library manifests from downloaded GEO files. No raw participant identifiers are used; the workflow retains only deidentified study identifiers supplied by the public deposits.
 
+## Repository-resident eligibility metadata
+
+The IDH eligibility table is versioned with the code and is not expected under `MILLER_IM_DATA_ROOT`:
+
+```text
+config/
+├── miller_im_gene_set.tsv
+└── GSE174554_formal_pair_IDH_crosswalk.csv
+```
+
+The crosswalk contains public deidentified sample identifiers, the IDH annotation reconciled from Wang *et al.* Supplementary Table 1, the source URL and workbook SHA-256, and the formal inclusion flag. Step 38 and Step 46 both read this same file from `config/`. The only excluded formal GSE174554 pair is `GSE174554_pair33` (`SF8963`/`SF12165`); the remaining 17 pairs are IDH-wild-type.
+
+Generated pseudobulks remain in the repository-local `write/34_gse174554_raw_independent_discovery/03_myeloid/` and `write/36_gse274546_raw_independent_reannotation/03_myeloid/` paths. `MILLER_IM_DATA_ROOT` is used only for downloaded public inputs and large external data required by reconstruction or Figure 3; in particular, `53_fig3_visual_variety_rebuild.py` never requires a machine-specific absolute path.

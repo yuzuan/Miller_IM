@@ -26,6 +26,7 @@ DATASETS = ["GSE174554", "GSE274546"]
 DATASET_COLORS = {"GSE174554": "#3C5488", "GSE274546": "#00A087"}
 HIGHLIGHT = "#E64B35"
 RAW20_NAME = "Miller_Microglial_Inflammatory_raw_top20"
+EXPECTED_SHARED_LEADING_EDGE = {"CCL4", "CH25H", "FOLR2", "KLF6", "PDK4", "SGK1", "SIGLEC8"}
 
 
 def sha256(path: Path) -> str:
@@ -93,8 +94,13 @@ def panel_e_rank_rank() -> dict[str, str]:
     background = frame.loc[~frame["miller_raw20"]].sort_values("density")
     raw20_other = frame.loc[frame["miller_raw20"] & ~frame["shared_leading_edge"]]
     shared = frame.loc[frame["shared_leading_edge"]]
-    if len(shared) != 8 or len(raw20_other) != 11:
-        raise ValueError(f"Expected 8 shared and 11 other measured raw20 genes, found {len(shared)} and {len(raw20_other)}")
+    if len(shared) != 7 or len(raw20_other) != 12:
+        raise ValueError(f"Expected 7 shared and 12 other measured raw20 genes, found {len(shared)} and {len(raw20_other)}")
+    if set(shared["gene"]) != EXPECTED_SHARED_LEADING_EDGE:
+        raise ValueError(
+            "Unexpected shared leading-edge genes: "
+            f"expected {sorted(EXPECTED_SHARED_LEADING_EDGE)}, found {sorted(shared['gene'])}"
+        )
 
     ax.scatter(
         background["rank_stat_GSE174554"],
@@ -126,11 +132,11 @@ def panel_e_rank_rank() -> dict[str, str]:
     )
 
     label_offsets = {
-        "CCL3": (4, 7),
         "CCL4": (-25, 7),
         "CH25H": (5, 5),
         "SGK1": (-23, -10),
         "FOLR2": (5, 7),
+        "PDK4": (5, -10),
     }
     for _, row in shared.loc[shared["gene"].isin(label_offsets)].iterrows():
         ax.annotate(
@@ -169,7 +175,7 @@ def panel_e_rank_rank() -> dict[str, str]:
     ax.text(
         0.98,
         0.03,
-        "8 shared leading-edge genes\n11 other measured raw20 genes",
+        "7 shared leading-edge genes\n12 other measured raw20 genes",
         transform=ax.transAxes,
         ha="right",
         va="bottom",
@@ -209,7 +215,7 @@ def panel_f_lopo() -> tuple[dict[str, str], Path]:
         raise ValueError("Figure1F source must contain only the fixed Miller raw20 program")
     full = frame.loc[frame["run_type"].eq("Full")].set_index("dataset")
     lopo = frame.loc[frame["run_type"].eq("Leave-one-patient-out")].copy()
-    expected_counts = {"GSE174554": 18, "GSE274546": 45}
+    expected_counts = {"GSE174554": 17, "GSE274546": 45}
     if lopo.groupby("dataset").size().to_dict() != expected_counts:
         raise ValueError(f"Unexpected LOPO counts: {lopo.groupby('dataset').size().to_dict()}")
 

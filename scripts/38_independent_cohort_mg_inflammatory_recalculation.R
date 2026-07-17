@@ -23,16 +23,65 @@ independent_dirs <- c(
   GSE274546 = file.path(project_dir, "write", "36_gse274546_raw_independent_reannotation", "03_myeloid")
 )
 miller_file <- file.path(project_dir, "config", "miller_im_gene_set.tsv")
+idh_crosswalk_file <- file.path(
+  project_dir, "config", "GSE174554_formal_pair_IDH_crosswalk.csv"
+)
 
 required_files <- c(
   unlist(lapply(independent_dirs, function(x) c(
     file.path(x, "patient_condition_pseudobulk_counts.csv.gz"),
     file.path(x, "patient_condition_pseudobulk_metadata.csv")
   ))),
-  miller_file
+  miller_file,
+  idh_crosswalk_file
 )
 missing_files <- required_files[!file.exists(required_files)]
 if (length(missing_files)) stop("Missing inputs: ", paste(missing_files, collapse = "; "))
+
+idh_crosswalk <- read.csv(
+  idh_crosswalk_file, stringsAsFactors = FALSE, check.names = FALSE
+)
+required_idh_columns <- c(
+  "dataset", "pair_key", "geo_pair_number", "primary_sample", "recurrent_sample",
+  "primary_idh", "recurrent_idh", "include_idh_wildtype",
+  "wang_supp_pair_number", "pair_stage_source", "idh_source", "source_citation",
+  "source_url", "source_file_sha256", "stage_mapping_note"
+)
+if (!all(required_idh_columns %in% names(idh_crosswalk))) {
+  stop("GSE174554 IDH crosswalk is missing required columns.")
+}
+idh_flag <- toupper(trimws(as.character(idh_crosswalk$include_idh_wildtype)))
+if (any(!idh_flag %in% c("TRUE", "FALSE"))) {
+  stop("GSE174554 IDH eligibility contains values other than TRUE/FALSE.")
+}
+idh_crosswalk$include_idh_wildtype <- idh_flag == "TRUE"
+if (
+  nrow(idh_crosswalk) != 18L ||
+    any(idh_crosswalk$dataset != "GSE174554") ||
+    anyDuplicated(idh_crosswalk$pair_key) ||
+    sum(idh_crosswalk$include_idh_wildtype) != 17L ||
+    !identical(
+      idh_crosswalk$pair_key[!idh_crosswalk$include_idh_wildtype],
+      "GSE174554_pair33"
+    )
+) {
+  stop("GSE174554 IDH crosswalk does not encode the audited 17/18 eligibility.")
+}
+if (
+  any(!nzchar(idh_crosswalk$primary_sample)) ||
+    any(!nzchar(idh_crosswalk$recurrent_sample)) ||
+    any(!idh_crosswalk$primary_idh %in% c("IDH wildtype", "IDH mutant")) ||
+    any(!idh_crosswalk$recurrent_idh %in% c("IDH wildtype", "IDH mutant"))
+) {
+  stop("GSE174554 IDH crosswalk contains incomplete or unexpected sample annotations.")
+}
+expected_supplement_sha256 <- "58e42239d4e105cfbbda6441bd640afbd64e0c55f87e07b1e0aaab0d1eff1c42"
+if (
+  length(unique(idh_crosswalk$source_file_sha256)) != 1L ||
+    unique(idh_crosswalk$source_file_sha256) != expected_supplement_sha256
+) {
+  stop("GSE174554 IDH crosswalk does not retain the audited supplementary-workbook hash.")
+}
 
 read_counts <- function(path) {
   x <- read.csv(gzfile(path), row.names = 1, check.names = FALSE)
@@ -113,6 +162,47 @@ eligible_pairs <- function(meta, threshold) {
   m[m$pair_key %in% complete, , drop = FALSE]
 }
 
+eligible_idhwt_pairs <- function(meta, dataset, threshold) {
+  eligible <- eligible_pairs(meta, threshold)
+  if (dataset != "GSE174554") return(eligible)
+  missing_pairs <- setdiff(unique(eligible$pair_key), idh_crosswalk$pair_key)
+  if (length(missing_pairs)) {
+    stop(
+      "GSE174554 eligible pairs are absent from the IDH crosswalk: ",
+      paste(missing_pairs, collapse = ";")
+    )
+  }
+  retained_pairs <- idh_crosswalk$pair_key[idh_crosswalk$include_idh_wildtype]
+  eligible[eligible$pair_key %in% retained_pairs, , drop = FALSE]
+}
+
+build_idh_filter_audit <- function(meta, threshold) {
+  eligible_before <- eligible_pairs(meta, threshold)
+  pair_keys <- sort(unique(eligible_before$pair_key))
+  missing_pairs <- setdiff(pair_keys, idh_crosswalk$pair_key)
+  if (length(missing_pairs)) {
+    stop("Cannot audit GSE174554 IDH status for: ", paste(missing_pairs, collapse = ";"))
+  }
+  audit <- idh_crosswalk[match(pair_keys, idh_crosswalk$pair_key), , drop = FALSE]
+  primary <- eligible_before[eligible_before$condition == "Primary", , drop = FALSE]
+  recurrent <- eligible_before[eligible_before$condition == "Recurrent", , drop = FALSE]
+  audit$threshold <- threshold
+  audit$primary_n_myeloid_cells <- primary$n_myeloid_cells[
+    match(audit$pair_key, primary$pair_key)
+  ]
+  audit$recurrent_n_myeloid_cells <- recurrent$n_myeloid_cells[
+    match(audit$pair_key, recurrent$pair_key)
+  ]
+  audit$eligible_before_idh_filter <- TRUE
+  audit$retained_after_idh_filter <- audit$include_idh_wildtype
+  audit$exclusion_reason <- ifelse(
+    audit$retained_after_idh_filter,
+    "",
+    "Primary and recurrent samples are IDH mutant in Wang Supplementary Table 1"
+  )
+  audit
+}
+
 sign_flip_test <- function(delta, seed) {
   delta <- delta[is.finite(delta)]
   n <- length(delta)
@@ -145,10 +235,12 @@ sign_flip_test <- function(delta, seed) {
 }
 
 score_fixed_sets <- function(cohort, dataset, threshold) {
-  y_all <- DGEList(counts = cohort$counts)
-  y_all <- calcNormFactors(y_all)
-  log_cpm <- cpm(y_all, log = TRUE, prior.count = 1)
-  eligible <- eligible_pairs(cohort$meta, threshold)
+  eligible <- eligible_idhwt_pairs(cohort$meta, dataset, threshold)
+  eligible_counts <- cohort$counts[, eligible$unit_id, drop = FALSE]
+  eligible <- eligible[match(colnames(eligible_counts), eligible$unit_id), , drop = FALSE]
+  y_eligible <- DGEList(counts = eligible_counts)
+  y_eligible <- calcNormFactors(y_eligible)
+  log_cpm <- cpm(y_eligible, log = TRUE, prior.count = 1)
   rows <- list()
   unit_rows <- list()
   for (set_name in names(fixed_sets)) {
@@ -207,7 +299,7 @@ run_fgsea <- function(pathways, rank_stat) {
 }
 
 run_pseudobulk <- function(cohort, dataset, threshold) {
-  m <- eligible_pairs(cohort$meta, threshold)
+  m <- eligible_idhwt_pairs(cohort$meta, dataset, threshold)
   x <- cohort$counts[, m$unit_id, drop = FALSE]
   m <- m[match(colnames(x), m$unit_id), , drop = FALSE]
   m$condition <- factor(m$condition, levels = c("Primary", "Recurrent"))
@@ -261,6 +353,19 @@ run_pseudobulk <- function(cohort, dataset, threshold) {
 
 cohorts <- lapply(names(independent_dirs), load_independent_cohort)
 names(cohorts) <- names(independent_dirs)
+idh_filter_audit <- build_idh_filter_audit(cohorts[["GSE174554"]]$meta, 20L)
+if (
+  nrow(idh_filter_audit) != 18L ||
+    sum(idh_filter_audit$retained_after_idh_filter) != 17L ||
+    idh_filter_audit$primary_n_myeloid_cells[
+      idh_filter_audit$pair_key == "GSE174554_pair33"
+    ] != 151L ||
+    idh_filter_audit$recurrent_n_myeloid_cells[
+      idh_filter_audit$pair_key == "GSE174554_pair33"
+    ] != 477L
+) {
+  stop("GSE174554 formal-pair IDH audit does not reproduce the expected 17/18 filter.")
+}
 thresholds <- c(20, 50)
 pair_audit <- list()
 score_summary <- list()
@@ -272,11 +377,18 @@ gene_results <- list()
 for (dataset in names(cohorts)) {
   cohort <- cohorts[[dataset]]
   for (threshold in thresholds) {
-    eligible <- eligible_pairs(cohort$meta, threshold)
+    eligible_before_idh <- eligible_pairs(cohort$meta, threshold)
+    eligible <- eligible_idhwt_pairs(cohort$meta, dataset, threshold)
     n_pairs <- length(unique(eligible$pair_key))
+    excluded_pairs <- setdiff(
+      unique(eligible_before_idh$pair_key), unique(eligible$pair_key)
+    )
     pair_audit[[paste(dataset, threshold)]] <- data.frame(
       dataset = dataset,
       threshold = threshold,
+      n_pairs_before_idh = length(unique(eligible_before_idh$pair_key)),
+      n_pairs_excluded_idh = length(excluded_pairs),
+      excluded_pair_keys = paste(excluded_pairs, collapse = ";"),
       n_pairs = n_pairs,
       n_units = nrow(eligible),
       n_cells_primary = sum(eligible$n_myeloid_cells[eligible$condition == "Primary"]),
@@ -304,6 +416,43 @@ deg_results <- do.call(rbind, deg_results)
 targeted_results <- do.call(rbind, targeted_results)
 gene_results <- do.call(rbind, gene_results)
 
+expected_pair_audit <- data.frame(
+  dataset = c("GSE174554", "GSE174554", "GSE274546", "GSE274546"),
+  threshold = c(20, 50, 20, 50),
+  n_pairs = c(17, 7, 45, 42),
+  n_units = c(34, 14, 90, 84),
+  n_cells_primary = c(4764, 3521, 28494, 27793),
+  n_cells_recurrent = c(7725, 4875, 27074, 26834),
+  stringsAsFactors = FALSE
+)
+observed_pair_audit <- merge(
+  expected_pair_audit,
+  pair_audit,
+  by = c("dataset", "threshold"),
+  all.x = TRUE,
+  sort = FALSE,
+  suffixes = c("_expected", "_observed")
+)
+for (column in c(
+  "n_pairs", "n_units", "n_cells_primary", "n_cells_recurrent"
+)) {
+  expected_column <- paste0(column, "_expected")
+  observed_column <- paste0(column, "_observed")
+  if (any(observed_pair_audit[[expected_column]] != observed_pair_audit[[observed_column]])) {
+    stop("IDH-restricted pair audit failed for ", column, ".")
+  }
+}
+main_counts <- pair_audit[pair_audit$threshold == 20, c("dataset", "n_pairs")]
+main_counts <- setNames(main_counts$n_pairs, main_counts$dataset)
+if (!identical(as.integer(main_counts[c("GSE174554", "GSE274546")]), c(17L, 45L))) {
+  stop("Formal IDH-restricted analyses must contain 17 and 45 pairs.")
+}
+
+write.csv(
+  idh_filter_audit,
+  file.path(output_dir, "GSE174554_IDH_filter_audit.csv"),
+  row.names = FALSE
+)
 write.csv(pair_audit, file.path(output_dir, "independent_input_pair_audit.csv"), row.names = FALSE)
 write.csv(score_summary, file.path(output_dir, "independent_fixed_program_paired_scores.csv"), row.names = FALSE)
 write.csv(score_units, file.path(output_dir, "independent_fixed_program_scores_by_unit.csv"), row.names = FALSE)
@@ -321,6 +470,7 @@ summary_lines <- c(
   "## Input rule",
   "",
   "- GSE174554 uses only the Step34 independently reconstructed and annotated clean-myeloid raw-count pseudobulk.",
+  "- GSE174554 is restricted to 17 IDH-wild-type pairs using a GEO-to-Wang Supplementary Table 1 sample crosswalk; the IDH-mutant pair GSE174554_pair33 is excluded before testing.",
   "- GSE274546 uses only the Step36 independently reconstructed and annotated clean-myeloid raw-count pseudobulk.",
   "- No merged GSE174554/GSE274546 object contributes cells, annotations or counts to these tests.",
   "",

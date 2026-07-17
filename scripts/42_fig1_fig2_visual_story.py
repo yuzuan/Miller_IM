@@ -15,6 +15,7 @@ from scipy.stats import gaussian_kde, spearmanr
 
 ROOT = Path(__file__).resolve().parents[1]
 STEP41 = ROOT / "write/41_mg_inflammatory_sci_rebuild"
+STEP38 = ROOT / "write/38_independent_cohort_mg_inflammatory_recalculation"
 FIG_ROOT = ROOT / "figures/42_visual_story_rebuild"
 WRITE_ROOT = ROOT / "write/42_visual_story_rebuild"
 
@@ -188,7 +189,37 @@ def label_position(frame: pd.DataFrame) -> tuple[float, float]:
 
 def figure1_design() -> dict[str, object]:
     stem = "Figure1A_compact_paired_design"
-    source_frame = pd.read_csv(STEP41 / "Figure1/source_data/cohort_workflow.csv")
+    audit = pd.read_csv(STEP38 / "independent_input_pair_audit.csv")
+    source_frame = audit.loc[
+        audit["dataset"].isin(DATASETS) & audit["threshold"].eq(20)
+    ].copy()
+    if source_frame.groupby("dataset").size().to_dict() != {
+        "GSE174554": 1,
+        "GSE274546": 1,
+    }:
+        raise ValueError("Step38 must contain one formal threshold-20 audit row per cohort.")
+    source_frame["input_libraries_or_matrices"] = source_frame["dataset"].map(
+        {"GSE174554": 91, "GSE274546": 111}
+    )
+    source_frame["clean_myeloid"] = (
+        source_frame["n_cells_primary"].astype(int)
+        + source_frame["n_cells_recurrent"].astype(int)
+    )
+    source_frame["formal_pairs_threshold20"] = source_frame["n_pairs"].astype(int)
+    observed = (
+        source_frame.set_index("dataset")[
+            ["formal_pairs_threshold20", "clean_myeloid"]
+        ]
+        .astype(int)
+        .to_dict("index")
+    )
+    expected = {
+        "GSE174554": {"formal_pairs_threshold20": 17, "clean_myeloid": 12489},
+        "GSE274546": {"formal_pairs_threshold20": 45, "clean_myeloid": 55568},
+    }
+    if observed != expected:
+        raise ValueError(f"Unexpected IDH-restricted Figure1A analysis set: {observed}")
+    source_frame = source_frame.sort_values("dataset").reset_index(drop=True)
     source_frame["modality"] = "snRNA-seq"
     source_frame["raw_input_unit"] = ["10x matrices", "10x libraries"]
     source_frame["minimum_cells_per_condition"] = 20
@@ -199,6 +230,25 @@ def figure1_design() -> dict[str, object]:
         "all-cell reconstruction -> pan-myeloid re-clustering -> marker and cluster-DEG review -> "
         "patient raw-count pseudobulk -> paired edgeR -> prespecified Miller-IM program GSEA"
     )
+    safe_source_columns = [
+        "dataset",
+        "modality",
+        "raw_input_unit",
+        "input_libraries_or_matrices",
+        "n_pairs_before_idh",
+        "n_pairs_excluded_idh",
+        "excluded_pair_keys",
+        "formal_pairs_threshold20",
+        "n_cells_primary",
+        "n_cells_recurrent",
+        "clean_myeloid",
+        "minimum_cells_per_condition",
+        "processing_scope",
+        "statistical_testing",
+        "replication_assessment",
+        "workflow",
+    ]
+    source_frame = source_frame.loc[:, safe_source_columns]
     source = write_source(source_frame, "Figure1", stem)
 
     fig = plt.figure(figsize=(mm(183), mm(94)), facecolor="white")
@@ -240,7 +290,7 @@ def figure1_design() -> dict[str, object]:
 
     workflow_boxes = [
         (8.0, 92.0, 64.0, 74.0, "Independent all-cell reconstruction", "Library QC · doublet removal · basic lineage annotation"),
-        (8.0, 92.0, 50.0, 60.0, "Cohort-wise pan-myeloid re-clustering", "2,000 HVGs · PCA · patient-Harmony · Leiden"),
+        (8.0, 92.0, 50.0, 60.0, "Cohort-wise pan-myeloid re-clustering", "2,000 HVGs · PCA · neighbor graph · Leiden"),
         (6.0, 94.0, 36.0, 46.0, "Marker and cluster-DEG review", "Remove lymphoid/tumour contaminants and low-quality cells"),
     ]
     for index, (x0, x1, y0, y1, title, subtitle) in enumerate(workflow_boxes):
@@ -263,7 +313,7 @@ def figure1_design() -> dict[str, object]:
         )
         rounded_box(x0, x1, analysis_y0, analysis_y1, color, pale, lw=1.0)
         ax.text(center, 26.8, f"{row['dataset']}  |  {int(row['formal_pairs_threshold20'])} paired patients", fontsize=7.1, weight="bold", color=color, ha="center", va="center")
-        ax.text(center, 22.0, f"{int(row['clean_myeloid']):,} clean myeloid cells", fontsize=5.9, color=NEUTRAL, ha="center", va="center")
+        ax.text(center, 22.0, f"{int(row['clean_myeloid']):,} analyzed myeloid cells", fontsize=5.9, color=NEUTRAL, ha="center", va="center")
         ax.text(center, 17.2, "Raw-count pseudobulk · paired edgeR · Miller-IM GSEA", fontsize=5.9, color=TEXT, ha="center", va="center")
 
     ax.annotate("", xy=(46.8, 10.8), xytext=(sum(cohort_boxes[0]) / 2, analysis_y0 - 0.5), arrowprops=dict(arrowstyle="-|>", color=DATASET_COLORS["GSE174554"], lw=0.9, connectionstyle="arc3,rad=-0.08"))

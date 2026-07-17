@@ -1,10 +1,9 @@
-dataset	modality	role	public_location
-GSE174554	snRNA-seq	primary paired recurrence test	https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE174554
-GSE274546	snRNA-seq	independent paired recurrence test	https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE274546
-GSE278456	single-cell myeloid atlas	state localization	https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE278456
-Artzi_GeoMx	GeoMx IBA1-positive regions	paired tissue support	https://doi.org/10.5281/zenodo.16839828
-GSE276841	Visium spatial transcriptomics	linked spatial context	https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE276841
-PDC000514	TMT proteomics	paired protein-level support	https://proteomic.datacommons.cancer.gov/pdc/study/PDC000514
-GSE121810	bulk RNA-seq	anti-PD-1 exposure association	https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE121810
-GSE154795	scRNA-seq	anti-PD-1 exposure association	https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE154795
-
+dataset	modality	role	IDH_scope_in_current_analysis	IDH_evidence_or_filter	public_location
+GSE174554	snRNA-seq	primary paired recurrence test	17 retained matched pairs are IDH-wild-type; GSE174554_pair33 is excluded as IDH-mutant	config/GSE174554_formal_pair_IDH_crosswalk.csv reconciled to Wang Supplementary Table 1	https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE174554
+GSE274546	snRNA-seq	independent paired recurrence test	all 45 analyzed matched pairs are IDH-wild-type	original study diagnosis under WHO 2021 and bulk-DNA confirmation	https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE274546
+GSE278456	single-cell myeloid atlas	state localization	not part of the formal paired IDH-restricted recurrence test	original study metadata	https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE278456
+Artzi_GeoMx	GeoMx IBA1-positive regions	paired tissue support	IDH-wild-type cases retained	explicit IDH_WT analysis filter	https://doi.org/10.5281/zenodo.16839828
+GSE276841	Visium spatial transcriptomics	linked spatial context	two IDH-wild-type cases shown	original study metadata	https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE276841
+PDC000514	TMT proteomics	paired protein-level support	IDH status unavailable and not used as a filter	no usable IDH annotation in the released study table	https://proteomic.datacommons.cancer.gov/pdc/study/PDC000514
+GSE121810	bulk RNA-seq	anti-PD-1 exposure association	not used for the paired recurrence claim	not applicable	https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE121810
+GSE154795	scRNA-seq	anti-PD-1 exposure association	not used for the paired recurrence claim	not applicable	https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE154795

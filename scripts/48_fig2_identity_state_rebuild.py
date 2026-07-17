@@ -491,9 +491,29 @@ def load_identity_sources() -> dict[str, pd.DataFrame]:
     pair_counts = pd.read_csv(STEP39_IDENTITY / "identity_pair_testability.csv")
     summary = pd.read_csv(STEP39_IDENTITY / "identity_raw20_patient_delta_summary.csv")
     deltas = pd.read_csv(STEP39_IDENTITY / "identity_raw20_patient_deltas.csv")
+    excluded = deltas["dataset"].eq("GSE174554") & deltas["patient_id"].eq("GSE174554_pair33")
+    if int(excluded.sum()) != 1:
+        raise RuntimeError("GSE174554_pair33在历史身份分层输入中应恰好出现一次")
+    deltas = deltas.loc[~excluded].copy()
+    macrophage_mask = summary["dataset"].eq("GSE174554") & summary["identity"].eq("Macrophage")
+    macrophage_values = deltas.loc[
+        deltas["dataset"].eq("GSE174554") & deltas["identity"].eq("Macrophage"),
+        "delta",
+    ].to_numpy(float)
+    mean_delta, ci_low, ci_high = bootstrap_mean_ci(macrophage_values, 20260717)
+    summary.loc[macrophage_mask, ["n_pairs", "mean_delta", "ci_low", "ci_high"]] = [
+        len(macrophage_values),
+        mean_delta,
+        ci_low,
+        ci_high,
+    ]
     threshold20 = pair_counts.loc[pair_counts["threshold"].eq(20)].copy()
+    threshold20.loc[
+        threshold20["dataset"].eq("GSE174554") & threshold20["identity"].eq("Macrophage"),
+        "n_pairs",
+    ] = len(macrophage_values)
     merged = threshold20.merge(summary, on=["dataset", "identity"], how="left", validate="one_to_one")
-    if int(merged.loc[merged["dataset"].eq("GSE174554") & merged["identity"].eq("Macrophage"), "n_pairs_x"].iloc[0]) != 18:
+    if int(merged.loc[merged["dataset"].eq("GSE174554") & merged["identity"].eq("Macrophage"), "n_pairs_x"].iloc[0]) != 17:
         raise RuntimeError("GSE174554 Macrophage配对数异常")
     if int(merged.loc[merged["dataset"].eq("GSE274546") & merged["identity"].eq("Macrophage"), "n_pairs_x"].iloc[0]) != 39:
         raise RuntimeError("GSE274546 Macrophage配对数异常")
@@ -771,12 +791,14 @@ GSE278456 included 21 primary IDH-wildtype GBM myeloid-enriched samples. The top
 def write_summary(results: dict[str, pd.DataFrame], identity: dict[str, pd.DataFrame]) -> Path:
     state = results["state_effect_summary"].sort_values("mean_delta", ascending=False)
     macrophage = identity["deltas"].loc[identity["deltas"]["identity"].eq("Macrophage")]
+    macrophage_g174 = macrophage.loc[macrophage["dataset"].eq("GSE174554")]
+    macrophage_g274 = macrophage.loc[macrophage["dataset"].eq("GSE274546")]
     lines = [
         "# Step48 Figure2 result",
         "",
         "- 正式Figure2不使用UMAP，也不再把连续程序包装成跨队列共同离散簇。",
-        "- 当前独立重建入口在20细胞/端点门槛下，Macrophage可检验18/39对，Microglia仅0/1对；因此不能主张Microglia特异复发效应。",
-        f"- Macrophage患者层raw20细胞分数：GSE174554 {int((macrophage.loc[macrophage['dataset'].eq('GSE174554'), 'delta'] > 0).sum())}/18上升；GSE274546 {int((macrophage.loc[macrophage['dataset'].eq('GSE274546'), 'delta'] > 0).sum())}/39上升。",
+        f"- 当前独立重建入口在20细胞/端点门槛并排除IDH-mutant pair33后，Macrophage可检验{len(macrophage_g174)}/{len(macrophage_g274)}对，Microglia仅0/1对；因此不能主张Microglia特异复发效应。",
+        f"- Macrophage患者层raw20细胞分数：GSE174554 {int((macrophage_g174['delta'] > 0).sum())}/{len(macrophage_g174)}上升；GSE274546 {int((macrophage_g274['delta'] > 0).sum())}/{len(macrophage_g274)}上升。",
         "- GSE278456从21个原始H5重算真正Miller raw20，21/21均覆盖19/20，只缺AC253572.2；CCL3与CCL4均进入。",
         "- author-marker-derived state赋值前删除全部raw20基因，状态效应只在其余八个预设髓系状态作rest。",
         "",

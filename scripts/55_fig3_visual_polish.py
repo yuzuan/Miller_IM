@@ -71,8 +71,8 @@ def panel_b(patients: pd.DataFrame) -> dict[str, str]:
     stem = "Figure3B_shared_gene_patient_fingerprint"
     genes = base.shared_genes()
     table = base.strict_gene_delta(patients, genes)
-    if len(table) != 176 or int(table["measured"].sum()) != 154:
-        raise ValueError("B面板必须保留8个预定义基因的完整审计源表，且7个基因可测")
+    if len(table) != 154 or int(table["measured"].sum()) != 132:
+        raise ValueError("B面板必须保留7个预定义基因的完整审计源表，且6个基因可测")
     if table.loc[~table["measured"], "gene"].drop_duplicates().tolist() != ["CCL4"]:
         raise ValueError("B面板唯一缺失基因必须为CCL4")
     source = SOURCE_OUT / f"{stem}_source.csv"
@@ -88,7 +88,7 @@ def panel_b(patients: pd.DataFrame) -> dict[str, str]:
     )
     color_limit = float(table["color_limit"].iloc[0])
     clipped = int((table.loc[table["measured"], "gene_delta"].abs() > color_limit).sum())
-    if clipped != 4:
+    if clipped != 3:
         raise ValueError(f"B面板98%色限截色数量改变: {clipped}")
 
     fig = base.new_figure(116, 86)
@@ -147,7 +147,7 @@ def panel_b(patients: pd.DataFrame) -> dict[str, str]:
 
     fig.text(0.10, 0.955, "Shared leading-edge gene fingerprint", fontsize=9.0, fontweight="bold", va="top")
     pdf, png = save_panel(fig, stem)
-    return base.record("B", stem, "Seven measurable genes shown from eight prespecified shared leading-edge genes", source, pdf, png)
+    return base.record("B", stem, "Six measurable genes shown from seven prespecified shared leading-edge genes", source, pdf, png)
 
 
 def panel_d() -> dict[str, str]:
@@ -252,7 +252,7 @@ def make_preview(records: list[dict[str, str]]) -> tuple[Path, Path, Path, Path]
     panel_font = image_font(78, bold=True)
     section_font = image_font(62, bold=True)
 
-    drawer.text((115, 55), "Independent recurrence validation", fill=base.RECURRENT, font=section_font)
+    drawer.text((115, 55), "Independent recurrence support", fill=base.RECURRENT, font=section_font)
     drawer.line((115, 145, 4205, 145), fill="#E8B2AA", width=5)
     drawer.text((115, 2190), "Miller-IM program in MDSC/MES-rich niches", fill=base.MDSC, font=section_font)
     drawer.line((115, 2285, 4205, 2285), fill="#A8D9CF", width=5)
@@ -278,7 +278,7 @@ def write_legend() -> Path:
 
 **Figure 3 | Paired myeloid-enriched tissue support and patient-matched spatial context of the Miller-IM program.**
 
-**A,** Paired IBA1-positive GeoMx Miller-IM scores in 22 IDH-wild-type patients; 16/22 were higher at recurrence (mean change 0.273, 95% CI 0.094–0.452; adjusted sign-flip FDR 0.00721). **B,** Changes for eight shared leading-edge genes; seven were measurable and *CCL4* was absent. **C,** Visium maps of Miller-IM, MDSC-like, and MES-like scores in two untreated primary IDH-wild-type tumors. Both cases, GBM030 and GBM049, were also represented in the single-cell atlas used for Figure 2. **D,** Myeloid-adjusted partial Spearman correlations were positive for MDSC-like (*r*<sub>s</sub> 0.399/0.355) and MES-like scores (0.280/0.270). Panels C,D provide patient-matched, cross-modal context rather than independent patient replication and are descriptive because spatial dependence was not modeled. State identity and multicellular niche context are distinct analytical levels; these maps do not assign MDSC identity to cells expressing the Miller-IM program.
+**A,** Paired IBA1-positive GeoMx Miller-IM scores in 22 IDH-wild-type patients; 16/22 were higher at recurrence (mean change 0.273, 95% CI 0.094–0.452; adjusted sign-flip FDR 0.00721). **B,** Changes for seven shared leading-edge genes; six were measurable and *CCL4* was absent. **C,** Visium maps of Miller-IM, MDSC-like, and MES-like scores in two untreated primary IDH-wild-type tumors. Both cases, GBM030 and GBM049, were also represented in the single-cell atlas used for Figure 2. **D,** Myeloid-adjusted partial Spearman correlations were positive for MDSC-like (*r*<sub>s</sub> 0.399/0.355) and MES-like scores (0.280/0.270). Panels C,D provide patient-matched, cross-modal context rather than independent patient replication and are descriptive because spatial dependence was not modeled. State identity and multicellular niche context are distinct analytical levels; these maps do not assign MDSC identity to cells expressing the Miller-IM program.
 """
     path = WRITE_ROOT / "Figure3_legend.md"
     path.write_text(content, encoding="utf-8")
@@ -289,7 +289,7 @@ def write_result(manifest: Path, legend: Path) -> None:
     content = f"""# Figure 3 visual polish
 
 - A：保留22对患者GeoMx paired dumbbell。
-- B：图面只展示7个可测基因；8个预定义基因和CCL4缺失信息仍完整保留在源表与图注。
+- B：图面只展示6个可测基因；7个预定义基因和CCL4缺失信息仍完整保留在源表与图注。
 - C：两张真实H&E统一采用同一固定灰度低对比显示，三类score及各自跨切片共享色标不变。
 - D：压缩为保留0基线和0–0.5横轴的四效应lollipop strip，不新增亚型、p值、FDR或CI。
 - Manifest：`{manifest}`
