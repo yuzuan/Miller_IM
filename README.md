@@ -17,15 +17,19 @@ The study tests a fixed 20-gene representation of the inflammatory microglial pr
 
 Raw public datasets and large intermediate objects are not redistributed. The bundled figure source tables contain only measurements derived from public, deidentified datasets and public study identifiers.
 
+The scripts use consecutive workflow numbers and descriptive Chinese filenames. The original published names are mapped in `docs/script_names.tsv`. Existing data paths and table columns are retained so that the frozen figure source tables remain usable. See `ARCHITECTURE.md` for the dependency order and shared utilities.
+
 ## Quick validation
 
 Create a Python environment using the recorded versions, then run:
 
 ```bash
-python scripts/validate_release.py
+python scripts/10b_公开数据核验.py
 ```
 
 This verifies the fixed gene-set definition and the 18-row GSE174554 IDH crosswalk, reads every bundled CSV/CSV.GZ file, checks headline values used in Figures 1–5, scans text and tabular character fields for local absolute paths and misleading program-level multiplicity labels, and verifies the SHA-256 manifest.
+
+Figure scripts also require the Poppler commands `pdftoppm`, `pdftotext`, and `pdffonts` on `PATH`. The plotting code saves a PDF master and renders its PNG at the existing resolution. R figure scripts additionally use `pdftools`. These dependencies affect figure export; the source-table validation command does not require Poppler to be installed.
 
 ## Re-running from public data
 

@@ -13,3 +13,4 @@ scDblFinder	not_pinned	Bioconductor
 patchwork	not_pinned	CRAN
 cowplot	not_pinned	CRAN
 gridExtra	not_pinned	CRAN
+pdftools	3.7.0	CRAN

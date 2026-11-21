@@ -1,0 +1,6 @@
+Poppler: pdftoppm, pdftotext, pdffonts available on PATH.
+Validated Poppler version: 26.04.0.
+
+pdftoppm renders PNG figures from the PDF master.
+pdftotext and pdffonts are used by the generated-figure audit.
+The source-table validation entry point does not call these commands.
