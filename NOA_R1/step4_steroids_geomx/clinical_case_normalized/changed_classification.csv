@@ -1,0 +1,2 @@
+patient_id,old_group,corrected_group,reason
+GSE274546_SM07,Missing,Yes->Yes,lowercase yes normalized to Yes

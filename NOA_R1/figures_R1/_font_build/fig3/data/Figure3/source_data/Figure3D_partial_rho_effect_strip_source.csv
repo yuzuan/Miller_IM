@@ -1,0 +1,5 @@
+sample,geo_accession,target,n_spots,partial_rho,inference_boundary
+GBM030,GSM8506649,MDSC,4501,0.3992505547833288,descriptive_only_no_spatial_autocorrelation_correction
+GBM030,GSM8506649,MES,4501,0.2799413751534758,descriptive_only_no_spatial_autocorrelation_correction
+GBM049,GSM8506650,MDSC,3128,0.3547268989165864,descriptive_only_no_spatial_autocorrelation_correction
+GBM049,GSM8506650,MES,3128,0.2704516311329281,descriptive_only_no_spatial_autocorrelation_correction

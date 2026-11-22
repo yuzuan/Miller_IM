@@ -1,0 +1,25 @@
+dataset,group,variable,level,n,missing,mean,sd,median,q1,q3
+GSE121810,Adj,myeloid_abundance,continuous,15,0,-0.0187046263100319,0.554876679458964,0.125658937494094,-0.429352413990881,0.315449265923007
+GSE121810,Neo,myeloid_abundance,continuous,14,0,0.0200406710464633,1.02366675444976,0.391738322702213,-0.45461710550829,0.710838614872249
+GSE121810,Adj,n_myeloid_cells,continuous,0,15,,,,,
+GSE121810,Neo,n_myeloid_cells,continuous,0,14,,,,,
+GSE154795,GBM.rec,MGMT,Meth,3,0,,,,,
+GSE154795,GBM.rec,MGMT,Un,5,0,,,,,
+GSE154795,GBM.PD1,MGMT,Meth,4,0,,,,,
+GSE154795,GBM.PD1,MGMT,Un,9,0,,,,,
+GSE154795,GBM.rec,sequencing_method,3' sequencing,5,0,,,,,
+GSE154795,GBM.rec,sequencing_method,5' sequencing,3,0,,,,,
+GSE154795,GBM.PD1,sequencing_method,3' sequencing,10,0,,,,,
+GSE154795,GBM.PD1,sequencing_method,5' sequencing,3,0,,,,,
+GSE154795,GBM.rec,gel_bead_version,v2,1,0,,,,,
+GSE154795,GBM.rec,gel_bead_version,v3,7,0,,,,,
+GSE154795,GBM.PD1,gel_bead_version,v2,5,0,,,,,
+GSE154795,GBM.PD1,gel_bead_version,v3,8,0,,,,,
+GSE154795,GBM.rec,acquisition_wave,early,3,0,,,,,
+GSE154795,GBM.rec,acquisition_wave,late,5,0,,,,,
+GSE154795,GBM.PD1,acquisition_wave,early,9,0,,,,,
+GSE154795,GBM.PD1,acquisition_wave,late,4,0,,,,,
+GSE154795,GBM.rec,myeloid_abundance,continuous,8,0,-0.177588559880901,0.675314153852046,-0.338437280012332,-0.640401300444777,0.23836514985808
+GSE154795,GBM.PD1,myeloid_abundance,continuous,13,0,0.109285267619016,0.494620975961944,-0.033877511977795,-0.237399487739653,0.60526181593833
+GSE154795,GBM.rec,n_myeloid_cells,continuous,8,0,1305.75,1401.51435954114,1001.5,286.5,1759.5
+GSE154795,GBM.PD1,n_myeloid_cells,continuous,13,0,1797,1529.81142628757,1366,641,2359

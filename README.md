@@ -2,6 +2,8 @@
 
 Code and figure source data for **An inflammatory myeloid program is enriched at recurrence in paired IDH-wildtype glioblastomas**.
 
+The October journal revision is in [NOA_R1](NOA_R1/README.md). The original analysis and its figure source tables are in the repository root.
+
 The study tests a fixed 20-gene representation of the inflammatory microglial program reported by Miller *et al.* in paired primary and recurrent IDH-wild-type glioblastoma datasets. The patient is the inferential unit. Single-set enrichment results are reported as nominal *P* values; FDR is used only for explicitly defined multi-hypothesis families.
 
 ## Repository contents
@@ -17,14 +19,14 @@ The study tests a fixed 20-gene representation of the inflammatory microglial pr
 
 Raw public datasets and large intermediate objects are not redistributed. The bundled figure source tables contain only measurements derived from public, deidentified datasets and public study identifiers.
 
-The scripts use consecutive workflow numbers and descriptive Chinese filenames. The original published names are mapped in `docs/script_names.tsv`. Existing data paths and table columns are retained so that the frozen figure source tables remain usable. See `ARCHITECTURE.md` for the dependency order and shared utilities.
+The scripts use consecutive workflow numbers and descriptive English filenames. See [the script-name map](docs/script_names.tsv) for the original entry points and [the architecture](ARCHITECTURE.md) for their dependencies.
 
 ## Quick validation
 
 Create a Python environment using the recorded versions, then run:
 
 ```bash
-python scripts/10b_公开数据核验.py
+python scripts/10b_validate_release.py
 ```
 
 This verifies the fixed gene-set definition and the 18-row GSE174554 IDH crosswalk, reads every bundled CSV/CSV.GZ file, checks headline values used in Figures 1–5, scans text and tabular character fields for local absolute paths and misleading program-level multiplicity labels, and verifies the SHA-256 manifest.

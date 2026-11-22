@@ -1,0 +1,8 @@
+check,passed,detail
+pcg64_plan_addendum_before_run,TRUE,
+GSE121810 independent_cook,TRUE,1.49880108324396e-15
+GSE121810 independent_exposure_dfbeta,TRUE,1.59594559789866e-16
+GSE121810 independent_vif,TRUE,3.5527136788005e-15
+GSE154795 independent_cook,TRUE,6.38378239159465e-16
+GSE154795 independent_exposure_dfbeta,TRUE,4.9960036108132e-16
+GSE154795 independent_vif,TRUE,4.44089209850063e-15

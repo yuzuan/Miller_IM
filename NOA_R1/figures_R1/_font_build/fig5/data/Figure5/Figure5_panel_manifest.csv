@@ -1,0 +1,4 @@
+panel,stem,message,source
+A,Figure5A_anti_pd1_exposure_timeline,Treatment exposure timing in the two Figure5 cohorts,figures_R1/_font_build/fig5/data/Figure5/source_data/Figure5A_anti_pd1_exposure_timeline_source.csv
+B,Figure5B_dual_cohort_raw20_enrichment,Two-cohort MG-Inflam20 rank-enrichment evidence,figures_R1/_font_build/fig5/data/Figure5/source_data/Figure5B_dual_cohort_raw20_enrichment_source.csv.gz
+C,Figure5C_patient_scores_and_adjusted_effects,MG-Inflam20 scores with cohort-specific adjusted model effects,figures_R1/_font_build/fig5/data/Figure5/source_data/Figure5C_patient_scores_and_adjusted_effects_source.csv

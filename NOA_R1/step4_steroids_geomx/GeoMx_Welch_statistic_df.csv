@@ -1,0 +1,2 @@
+contrast,n_nivolumab,n_control,estimate,se,t,df,ci_low,ci_high,p_value,source
+Nivolumab_minus_Control,12,10,0.191366986428645,0.181545856361792,1.05409724167585,19.773941927394,-0.187608766675809,0.570342739533099,0.304548776515305,formal Figure3A patient source; no upstream score reconstruction

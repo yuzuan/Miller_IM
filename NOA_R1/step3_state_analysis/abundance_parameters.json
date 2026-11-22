@@ -1,0 +1,14 @@
+{
+  "date": "2026-10-19",
+  "denominator": "all captured quality-filtered myeloid cells per patient/timepoint",
+  "exact_limit": 18,
+  "monte_carlo": 100000,
+  "seeds": [
+    202610191,
+    202610192
+  ],
+  "null_assumption": "patient difference signs exchangeable under null; not randomized timepoints",
+  "statistic": "absolute sum of paired percentage-point differences",
+  "ci": "paired t 95%, all groups, unadjusted descriptive intervals",
+  "family": "nine fine states BY9 per cohort; broad MCG proportion one hypothesis; complementary group not independent"
+}

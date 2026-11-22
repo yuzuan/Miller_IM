@@ -1,0 +1,35 @@
+{
+  "analysis_date": "2026-10-19",
+  "design": "~ pair_key + condition",
+  "reference": "Primary",
+  "gene_set": "original fixed top20; 19 measurable, AC253572.2 absent",
+  "primary_camera": {
+    "inter_gene_cor": "estimated (NA)",
+    "allow_neg_cor": false,
+    "use_ranks": false,
+    "directional": true,
+    "two_sided": true
+  },
+  "sensitivity_camera": {
+    "inter_gene_cor": 0.01,
+    "allow_neg_cor": false,
+    "use_ranks": false,
+    "directional": true,
+    "two_sided": true
+  },
+  "voom": {
+    "normalize_method": "none",
+    "adaptive_span": true
+  },
+  "patient_score": "TMM on unfiltered formal matrix; logCPM prior.count=1; per-gene cohort z-score; mean19",
+  "patient_interval": "paired t 95% CI; conditional on the cohort-defined standardized scores",
+  "packages": {
+    "edgeR": "4.4.2",
+    "limma": "3.66.0",
+    "statmod": "1.5.1"
+  },
+  "cached_models": [
+    "step1_primary_recurrence/GSE174554_paired_voom.rds",
+    "step1_primary_recurrence/GSE274546_paired_voom.rds"
+  ]
+}

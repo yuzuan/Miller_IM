@@ -1,0 +1,5 @@
+panel,stem,message,source
+A,Figure3A_geomx_paired_dumbbell,Patient-level paired GeoMx MG-Inflam20 scores,figures_R1/_font_build/fig3/data/Figure3/source_data/Figure3A_geomx_paired_dumbbell_source.csv
+B,Figure3B_shared_gene_patient_fingerprint,Six measurable genes shown from seven prespecified shared leading-edge genes,figures_R1/_font_build/fig3/data/Figure3/source_data/Figure3B_shared_gene_patient_fingerprint_source.csv
+C,Figure3C_spatial_score_atlas,Frozen tissue map; registered-array 1 mm scale bars and vector labels,figures_R1/_font_build/fig3/data/Figure3/source_data/Figure3C_spatial_score_atlas_source.csv.gz
+D,Figure3D_partial_rho_effect_strip,Compact descriptive partial-rho effect strip,figures_R1/_font_build/fig3/data/Figure3/source_data/Figure3D_partial_rho_effect_strip_source.csv

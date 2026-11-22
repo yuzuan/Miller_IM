@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 # ======================================================================
-# 00a_functions.py —— Miller-IM公共函数库
-# 项目：公开配对复发GBM分析。
+# 00a_functions.py — Miller-IM shared figure functions
+# Public paired recurrence analysis in glioblastoma.
 #
-# 目的：
-# 统一多个脚本使用的配色、PDF保存、PNG渲染与预览排版。
-# 保留原Matplotlib实现，避免语言替换改变既有图件。
-# 本函数脚本不用单独浏览学习，在其它分析脚本调用到它时再学。
-# 编辑器中点击调用处函数名，可以跳到对应定义。
-# 函数定义的查找靠编辑器跳转，不靠文件头清单。
+# Purpose
+# Share the plotting palette, PDF and PNG export, and figure-preview layout.
+# Use the published Matplotlib settings and panel geometry.
+# The analysis scripts provide examples at each function call.
+# Use go-to-definition in the editor to follow a call to its implementation.
+# Function signatures describe the inputs used by the figure scripts.
 
 from __future__ import annotations
 
@@ -24,12 +24,12 @@ from PIL import Image, ImageFont, ImageOps
 
 
 def mm(value: float) -> float:
-    """输入毫米数，返回英寸数；25.4为毫米到英寸的精确换算。"""
+    """Convert millimeters to inches using the exact factor 25.4."""
     inches = value / 25.4
     return inches
 
 
-# 颜色由多个独立绘图入口读取；名称是原图中的组别，不重新分组。
+# These colors match the labels in the published figure panels.
 colors = {
     "primary": "#4C78A8",
     "recurrent": "#E45756",
@@ -48,7 +48,7 @@ colors = {
 
 
 def apply_publication_style() -> None:
-    """无输入；设置原公开图的字体、线宽和背景；无返回值。"""
+    """Apply the published font, line width, and background settings."""
     mpl.rcParams.update(
         {
             "font.family": "Arial",
@@ -77,13 +77,13 @@ def apply_publication_style() -> None:
 
 
 def new_figure(width_mm: float, height_mm: float, **kwargs):
-    """输入画布毫米尺寸及Matplotlib参数，返回白底Figure。"""
+    """Return a white Matplotlib figure with dimensions specified in millimeters."""
     figure = plt.figure(figsize=(mm(width_mm), mm(height_mm)), facecolor="white", **kwargs)
     return figure
 
 
 def clean_axis(ax, *, keep_left: bool = True, keep_bottom: bool = True) -> None:
-    """输入Axes及边框开关，修改原图轴线样式；无返回值。"""
+    """Apply the requested spine visibility and axis styling."""
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     ax.spines["left"].set_visible(keep_left)
@@ -92,11 +92,11 @@ def clean_axis(ax, *, keep_left: bool = True, keep_bottom: bool = True) -> None:
 
 
 def render_pdf_png(pdf_path: Path, png_path: Path, dpi: int = 600) -> None:
-    """将单页PDF母版渲染为PNG；缺文件、渲染失败或空图片时停止；无返回值。"""
+    """Render a single-page PDF as a PNG and verify that the image can be opened."""
     if not pdf_path.is_file() or pdf_path.stat().st_size == 0:
         raise ValueError(f"Missing or empty PDF: {pdf_path.name}")
 
-    # Poppler从已保存PDF读取图形；600 dpi沿用既有期刊图分辨率。
+    # Poppler reads the saved PDF at the requested resolution, normally 600 dpi.
     png_path.parent.mkdir(parents=True, exist_ok=True)
     subprocess.run(
         ["pdftoppm", "-singlefile", "-png", "-r", str(dpi), str(pdf_path), str(png_path.with_suffix(""))],
@@ -104,7 +104,7 @@ def render_pdf_png(pdf_path: Path, png_path: Path, dpi: int = 600) -> None:
         stdout=subprocess.DEVNULL,
     )
 
-    # 检查实际产物，防止仅有文件名而没有可读图片。
+    # Open the PNG to confirm that the renderer produced a readable image.
     if not png_path.is_file() or png_path.stat().st_size == 0:
         raise ValueError(f"Missing or empty PNG: {png_path.name}")
     with Image.open(png_path) as image:
@@ -114,11 +114,11 @@ def render_pdf_png(pdf_path: Path, png_path: Path, dpi: int = 600) -> None:
 
 
 def save_panel(fig, out_dir: Path, stem: str, creator: str) -> tuple[Path, Path]:
-    """输入Figure、目录、主名及原作者标记，返回已核验的PDF和PNG路径。"""
+    """Save a figure with the original creator metadata and return the PDF and PNG paths."""
     out_dir.mkdir(parents=True, exist_ok=True)
     pdf_path = out_dir / f"{stem}.pdf"
 
-    # 先绘制画布再保存PDF，沿用原尺寸、白底与PDF元数据。
+    # Draw the figure before saving its PDF with the original size and background.
     fig.canvas.draw()
     fig.savefig(
         pdf_path,
@@ -127,7 +127,7 @@ def save_panel(fig, out_dir: Path, stem: str, creator: str) -> tuple[Path, Path]
         metadata={"Creator": creator, "CreationDate": None, "ModDate": None},
     )
 
-    # PNG只从刚生成的母版转换，两个格式使用同一图形。
+    # Render the PNG from the saved PDF so both exports use the same drawing.
     png_path = out_dir / f"{stem}.png"
     render_pdf_png(pdf_path, png_path)
     plt.close(fig)
@@ -136,12 +136,12 @@ def save_panel(fig, out_dir: Path, stem: str, creator: str) -> tuple[Path, Path]
 
 
 def save_figure(fig, out_dir: Path, stem: str) -> None:
-    """兼容原Step41公共调用；保留原Creator及无返回值接口。"""
+    """Save the PDF and PNG with the original Step 41 creator metadata."""
     save_panel(fig, out_dir, stem, "Step41 recurrent GBM figure rebuild")
 
 
 def sha256(path: Path) -> str:
-    """输入已有文件路径，返回原发布清单所用的摘要字符串。"""
+    """Return the file digest used in the published source manifest."""
     digest = hashlib.sha256()
     with path.open("rb") as handle:
         while True:
@@ -154,7 +154,7 @@ def sha256(path: Path) -> str:
 
 
 def panel_record(panel: str, stem: str, message: str, source: Path, pdf: Path, png: Path) -> dict[str, str]:
-    """输入单个面板及三份产物路径，返回原发布清单的九个字段。"""
+    """Return the nine manifest fields for a panel and its three output paths."""
     record = {
         "panel": panel,
         "stem": stem,
@@ -170,11 +170,11 @@ def panel_record(panel: str, stem: str, message: str, source: Path, pdf: Path, p
 
 
 def image_font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
-    """按原候选顺序读取预览字体，返回Pillow字体；沿用原缺字体处理。"""
+    """Return the first available preview font from the original candidate order."""
     font_name = "Arial Bold.ttf" if bold else "Arial.ttf"
     candidates = [Path("/System/Library/Fonts/Supplemental") / font_name, Path("/System/Library/Fonts/Helvetica.ttc")]
 
-    # 字体只是预览依赖；依次尝试原Arial、Helvetica及Pillow默认字体。
+    # Try the configured Arial and Helvetica locations before the Pillow default.
     for candidate in candidates:
         if not candidate.exists():
             continue
@@ -188,7 +188,7 @@ def image_font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont | ImageF
 
 
 def paste_contained(canvas: Image.Image, source: Path, box: tuple[int, int, int, int]) -> None:
-    """将已有面板等比居中放入预览矩形，不改变矩形布局；无返回值。"""
+    """Scale a panel proportionally and center it in the requested preview rectangle."""
     left, top, right, bottom = box
     with Image.open(source) as image:
         rgba = image.convert("RGBA")
@@ -196,16 +196,16 @@ def paste_contained(canvas: Image.Image, source: Path, box: tuple[int, int, int,
         white.alpha_composite(rgba)
         fitted = ImageOps.contain(white.convert("RGB"), (right - left, bottom - top), Image.Resampling.LANCZOS)
 
-    # 留白在左右和上下各平分，沿用原预览定位。
+    # Divide spare width and height evenly around the centered panel.
     x = left + (right - left - fitted.width) // 2
     y = top + (bottom - top - fitted.height) // 2
     canvas.paste(fitted, (x, y))
 
 
 def enrichment_curve(deg_table: pd.DataFrame, genes: list[str]) -> pd.DataFrame:
-    """输入含gene/logFC/F的差异表与固定基因列表；返回逐基因排名、命中及累积富集表。"""
+    """Build the ranked gene table with hit flags and running enrichment scores."""
 
-    # 构建或筛选两队列基因排名，维持原排序和合并键。
+    # Keep the original sort order and join keys when comparing the cohort gene ranks.
     ranked_table = deg_table.copy()
     ranked_table["rank_stat"] = np.sign(ranked_table["logFC"]) * np.sqrt(np.maximum(ranked_table["F"], 0))
     ranked_table = (
@@ -237,7 +237,7 @@ def enrichment_curve(deg_table: pd.DataFrame, genes: list[str]) -> pd.DataFrame:
 
 
 def rank_density(rank_table: pd.DataFrame, bins: int = 75) -> np.ndarray:
-    """输入两队列排名统计表及分箱数；返回每行所在二维箱计数的log1p值。"""
+    """Return the log1p bin count for each row in the two-cohort rank table."""
 
     x = rank_table["rank_stat_GSE174554"].to_numpy(dtype=float)
     y = rank_table["rank_stat_GSE274546"].to_numpy(dtype=float)
@@ -245,6 +245,6 @@ def rank_density(rank_table: pd.DataFrame, bins: int = 75) -> np.ndarray:
     xi = np.clip(np.searchsorted(x_edges, x, side="right") - 1, 0, bins - 1)
     yi = np.clip(np.searchsorted(y_edges, y, side="right") - 1, 0, bins - 1)
 
-    # 形成已计算结果的具名返回对象。
+    # Index the two-dimensional counts at each row's assigned bin.
     result = np.log1p(counts[xi, yi])
     return result

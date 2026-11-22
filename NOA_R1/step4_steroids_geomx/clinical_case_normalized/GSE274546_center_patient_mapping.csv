@@ -1,0 +1,46 @@
+analysis_patient_id,source_patient_id,tumor_prefix,tissue_source,steroid_record_status,primary_steroid,recurrent_steroid,paired_score_change
+GSE274546_DU01,P1,DU01,Duke University,Complete,Yes,No,-0.935968456593955
+GSE274546_DU02,P2,DU02,Duke University,Complete,No,No,0.606639347193804
+GSE274546_DU03,P3,DU03,Duke University,Incomplete,,Yes,2.09420019496764
+GSE274546_DU04,P4,DU04,Duke University,Complete,Yes,No,0.12740343380326
+GSE274546_DU06,P6,DU06,Duke University,Complete,Yes,No,0.203146886248292
+GSE274546_FR01,P41,FR01,Pitié-Salpêtrière Hospital,Incomplete,,,0.461606804000258
+GSE274546_FR02,P42,FR02,Pitié-Salpêtrière Hospital,Incomplete,,,0.851353870738592
+GSE274546_FR05,P45,FR05,Pitié-Salpêtrière Hospital,Complete,No,Yes,1.16506266681891
+GSE274546_FR07,P47,FR07,Pitié-Salpêtrière Hospital,Incomplete,,No,0.701133597562319
+GSE274546_FR09,P49,FR09,Pitié-Salpêtrière Hospital,Complete,No,Yes,1.73245251320189
+GSE274546_FR10,P50,FR10,Pitié-Salpêtrière Hospital,Incomplete,,,-0.293216367077173
+GSE274546_FR11,P51,FR11,Pitié-Salpêtrière Hospital,Incomplete,,,0.387732179577834
+GSE274546_FR12,P52,FR12,Pitié-Salpêtrière Hospital,Complete,No,Yes,-0.541290487500998
+GSE274546_FR14,P54,FR14,Pitié-Salpêtrière Hospital,Complete,No,No,-0.0221249506271257
+GSE274546_FR16,P56,FR16,Pitié-Salpêtrière Hospital,Incomplete,,,1.08659171902304
+GSE274546_MD01,P8,MD01,MD  Anderson Cancer Center,Complete,No,Yes,-0.284502686332096
+GSE274546_MD02,P9,MD02,MD  Anderson Cancer Center,Complete,Yes,Yes,0.328810142453571
+GSE274546_NL02,P58,NL02,NorLux,Complete,Yes,No,0.122807065963582
+GSE274546_NL06,P62,NL06,NorLux,Complete,Yes,Yes,-0.0777796845978079
+GSE274546_NL07,P63,NL07,NorLux,Complete,No,No,0.335737107854628
+GSE274546_SM01,P34,SM01,St.Michael's Hospital,Complete,Yes,Yes,-0.121024937872391
+GSE274546_SM02,P35,SM02,St.Michael's Hospital,Complete,Yes,Yes,-0.114407675063036
+GSE274546_SM03,P36,SM03,St.Michael's Hospital,Complete,Yes,Yes,-0.319982398338767
+GSE274546_SM05,P38,SM05,St.Michael's Hospital,Complete,No,Yes,0.663085317822973
+GSE274546_SM06,P39,SM06,St.Michael's Hospital,Complete,Yes,Yes,0.100767112582452
+GSE274546_SM07,P40,SM07,St.Michael's Hospital,Complete,Yes,Yes,1.26818680712117
+GSE274546_SN01,P67,SN01,Seoul National University,Complete,Yes,Yes,-0.127801955022279
+GSE274546_SN02,P68,SN02,Seoul National University,Complete,Yes,Yes,-0.95381704636772
+GSE274546_SN03,P69,SN03,Seoul National University,Complete,Yes,Yes,0.90891289316543
+GSE274546_SN04,P70,SN04,Seoul National University,Complete,Yes,Yes,0.0354810094868511
+GSE274546_SN06,P72,SN06,Seoul National University,Complete,Yes,Yes,0.387365221625029
+GSE274546_SN08,P74,SN08,Seoul National University,Complete,Yes,Yes,-0.540200345958994
+GSE274546_SN09,P75,SN09,Seoul National University,Complete,Yes,Yes,-0.917609968532265
+GSE274546_SN12,P78,SN12,Seoul National University,Complete,Yes,Yes,-0.078056755836251
+GSE274546_TK01,P20,TK01,Tokyo University,Complete,Yes,No,0.638580406589942
+GSE274546_TK02,P21,TK02,Tokyo University,Complete,No,No,0.202725882074451
+GSE274546_TK03,P22,TK03,Tokyo University,Complete,No,No,0.352270577151444
+GSE274546_TK04,P23,TK04,Tokyo University,Complete,No,No,0.387509883525228
+GSE274546_TK05,P24,TK05,Tokyo University,Complete,No,No,-0.236987132371234
+GSE274546_TK07,P26,TK07,Tokyo University,Complete,No,No,-0.285627845845364
+GSE274546_TK08,P27,TK08,Tokyo University,Complete,No,No,0.400347901535888
+GSE274546_TK11,P30,TK11,Tokyo University,Complete,No,No,-0.485677110782866
+GSE274546_TK12,P31,TK12,Tokyo University,Complete,No,Yes,-1.27704410306773
+GSE274546_TK13,P32,TK13,Tokyo University,Incomplete,,,0.347272251171318
+GSE274546_TK14,P33,TK14,Tokyo University,Complete,No,No,-0.74611214340148

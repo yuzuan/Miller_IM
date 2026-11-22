@@ -1,0 +1,5 @@
+analysis,mode,n_pairs,seed,engine,simulations,exceedances,p_independent,p_previous,absolute_difference,mc_standard_error,prefixed_tolerance,within_mc_tolerance,previous_method
+unique_peptides,fixed_proteins_all105,105,20261020,dqrng pcg64,100000,0,9.99990000099999e-06,9.99990000099999e-06,0,9.99990000099999e-06,3.9999600004e-05,TRUE,base_R_sample_Monte_Carlo
+unique_peptides,original11_complete_patients,22,20261020,dqrng pcg64,100000,1151,0.011519884801152,0.011659883401166,0.000139998600014013,0.000339469152063,0.00102840735619,TRUE,base_R_sample_Monte_Carlo
+all_peptides,fixed_proteins_all105,105,20261020,dqrng pcg64,100000,0,9.99990000099999e-06,9.99990000099999e-06,0,9.99990000099999e-06,3.9999600004e-05,TRUE,base_R_sample_Monte_Carlo
+all_peptides,original11_complete_patients,29,20261020,dqrng pcg64,100000,188,0.001889981100189,0.001869981300187,1.99998000019982e-05,0.000136619342339361,0.000419857927019083,TRUE,base_R_sample_Monte_Carlo

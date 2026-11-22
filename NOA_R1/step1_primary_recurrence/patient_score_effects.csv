@@ -1,0 +1,3 @@
+dataset,n_pairs,n_genes,mean_delta,sd_delta,se_delta,ci_low,ci_high,ci_method,t_statistic,residual_df,t_p_value,original_sign_flip_p,original_sign_flip_exact,positive_pairs,median_delta,score_unit
+GSE174554,17,19,0.431304096233821,0.772299233988903,0.18731007743058,0.0342244704911915,0.82838372197645,"two-sided paired t, df=n_pairs-1",2.30262088484625,16,0.0350643335291481,0.03289794921875,TRUE,12,0.405202133238742,mean gene-wise z-score of TMM logCPM; cohort-specific scaling
+GSE274546,45,19,0.16751001649045,0.691556938954969,0.103091221720999,-0.0402566889758433,0.375276721956744,"two-sided paired t, df=n_pairs-1",1.62487177563761,44,0.111332735692238,0.112278877211228,FALSE,26,0.12740343380326,mean gene-wise z-score of TMM logCPM; cohort-specific scaling

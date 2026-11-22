@@ -1,0 +1,11 @@
+# Track the archived figure source tables under the original layout.
+!figures_R1/_font_build/*/data/
+!figures_R1/_font_build/*/data/**
+
+# Generated figures and editable supplementary tables.
+*.pdf
+*.png
+*.tif
+*.tiff
+*.docx
+/sources/*.xlsx

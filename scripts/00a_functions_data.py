@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 # ======================================================================
-# 00a_functions_data.py —— Miller_IM 公共数据函数库
-# Miller_IM：公开数据重建与样本清单。
+# 00a_functions_data.py — Miller-IM shared data functions
+# Public data reconstruction and sample manifests for paired glioblastomas.
 #
-# 目的：
-# 集中多个脚本共用的数据读取、marker评分及pseudobulk汇总，保持原始算法和随机数设置。
-# 本函数脚本不用单独浏览学习，在其它分析脚本调用到它时再学。
-# 在编辑器调用处跳转到定义，可直接查看对应函数；函数查找依靠跳转，不靠文件头清单。
-# 输入由各调用脚本提供；本模块导入时不读取数据，不运行分析，也不直接加载绘图库。
+# Purpose
+# Share file readers, marker scoring, and pseudobulk aggregation across the data workflows.
+# The analysis scripts show how each helper is used.
+# Use go-to-definition in the editor to read the implementation from its call site.
+# Data and analysis settings are passed by the callers.
 
 from __future__ import annotations
 
@@ -24,9 +24,9 @@ if TYPE_CHECKING:
     from scipy import sparse
 
 
-# 输入名称列表，返回同顺序唯一名称；重复项按原计数追加-1、-2，不改用其他去重规则。
+# Append serial suffixes -1, -2, and so on to duplicated names.
 def make_unique(names: list[str]) -> list[str]:
-    """返回追加重复计数后缀的名称列表；输入和输出顺序一一对应。"""
+    """Return unique names in the same order as the input."""
     seen: dict[str, int] = {}
     result = []
     for name in names:
@@ -40,9 +40,9 @@ def make_unique(names: list[str]) -> list[str]:
     return result
 
 
-# 输入异常MatrixMarket gzip路径，返回基因×细胞CSR及声明/解析条目数；保留原逐行正则和重复坐标求和规则。
+# Read repaired Matrix Market counts with the published record parser and sum repeated coordinates.
 def read_matrix_manual(path: Path) -> tuple[sparse.csr_matrix, int, int]:
-    """返回(int32 CSR,声明条目数,解析条目数)；不填补缺失声明条目。"""
+    """Return the int32 gene-by-cell CSR matrix and the declared and parsed entry counts."""
     import numpy as np
     from scipy import sparse
 
@@ -52,7 +52,7 @@ def read_matrix_manual(path: Path) -> tuple[sparse.csr_matrix, int, int]:
                 n_rows, n_columns, declared_nnz = map(int, line.split())
                 break
 
-        # 预分配长度来自文件表头；有效记录不足声明条目时，仅截取实际读到部分。
+        # Allocate from the header and retain only the records that were actually read.
         row_indices = np.empty(declared_nnz, dtype=np.int32)
         column_indices = np.empty(declared_nnz, dtype=np.int32)
         count_values = np.empty(declared_nnz, dtype=np.int32)
@@ -77,14 +77,14 @@ def read_matrix_manual(path: Path) -> tuple[sparse.csr_matrix, int, int]:
     return result
 
 
-# 输入AnnData、保序marker字典、列名前缀和原调用种子，返回每marker集合一行的覆盖表。
+# Score the supplied marker sets in order and record their measured gene coverage.
 def score_marker_sets(
     adata: ad.AnnData,
     marker_sets: dict[str, list[str]],
     prefix: str,
     random_state: int,
 ) -> pd.DataFrame:
-    """原位写入score列并返回覆盖表；任一集合少于两个可测基因时停止。"""
+    """Save scores to AnnData and return one coverage row per marker set."""
     import scanpy as sc
 
     coverage_rows = []
@@ -93,7 +93,7 @@ def score_marker_sets(
         if len(present_genes) < 2:
             raise ValueError(f"Marker set {name} has fewer than two genes")
 
-        # 每集合沿用调用者原种子；移出循环或更换种子会改变对照基因抽样，不能作风格调整。
+        # Repeat the caller's seed for each set to match the published control-gene draws.
         sc.tl.score_genes(adata, present_genes, score_name=f"{prefix}{name}", use_raw=False, random_state=random_state)
         coverage_rows.append(
             {
@@ -108,9 +108,9 @@ def score_marker_sets(
     return coverage_table
 
 
-# 输入AnnData及聚类/结果字段名，返回每个cluster-gene一行的原Scanpy差异基因排序表。
+# Rank the detected genes for each cluster using the published Scanpy test.
 def rank_clusters(adata: ad.AnnData, cluster_key: str, key: str) -> pd.DataFrame:
-    """原位保存rank结果，返回包含cluster、gene、rank的表；保持t-test_overestim_var。"""
+    """Save the ranking and return cluster, gene, and rank from t-test_overestim_var."""
     import scanpy as sc
 
     sc.tl.rank_genes_groups(
@@ -123,9 +123,9 @@ def rank_clusters(adata: ad.AnnData, cluster_key: str, key: str) -> pd.DataFrame
     return marker_table
 
 
-# 输入AnnData、分组列、文件前缀和输出目录；写计数矩阵及样本表，无返回值。
+# Aggregate the raw counts by the supplied fields and write the count and sample tables.
 def write_pseudobulk(adata: ad.AnnData, group_columns: list[str], prefix: str, output_dir: Path) -> None:
-    """按分组顺序汇总counts；输出基因×样本矩阵与每样本一行元数据，无返回值。"""
+    """Write a gene-by-sample count matrix and matching sample metadata in group order."""
     import numpy as np
 
     observation_table = adata.obs[group_columns].copy()
@@ -139,7 +139,7 @@ def write_pseudobulk(adata: ad.AnnData, group_columns: list[str], prefix: str, o
         if not isinstance(group_values, tuple):
             group_values = (group_values,)
 
-        # counts每行一个细胞，按axis=0汇总每个基因；PB编号、int64和压缩设置均沿用原实现。
+        # Sum the cells within each gene and keep the original integer dtype and sample numbering.
         sample_id = f"PB{index + 1:04d}"
         vector = np.asarray(count_matrix[group_table["row"].to_numpy()].sum(axis=0)).ravel().astype(np.int64)
         vectors.append(pd.Series(vector, name=sample_id))
@@ -147,7 +147,7 @@ def write_pseudobulk(adata: ad.AnnData, group_columns: list[str], prefix: str, o
         metadata_row.update(sample_id=sample_id, n_cells=len(group_table), library_size=int(vector.sum()))
         metadata_rows.append(metadata_row)
 
-    # 一次拼接各样本向量，保留基因顺序；输出目录在写盘前创建。
+    # Stack the sample vectors in gene order and create the output directory before saving.
     count_table_total = pd.concat(vectors, axis=1)
     count_table_total.insert(0, "gene", adata.var_names.astype(str))
     metadata_table = pd.DataFrame(metadata_rows)
@@ -157,7 +157,7 @@ def write_pseudobulk(adata: ad.AnnData, group_columns: list[str], prefix: str, o
     metadata_path = output_dir / f"{prefix}_metadata.csv"
     metadata_table.to_csv(metadata_path, index=False)
 
-    # 两个文件均为下游统计模型输入；核对非空和样本维度，不新增审核产物。
+    # Verify that the pseudobulk files for the downstream analyses have matching sample dimensions.
     if count_table_total.shape != (adata.n_vars, len(metadata_table) + 1):
         raise RuntimeError("Pseudobulk counts and metadata dimensions differ")
 
@@ -166,9 +166,9 @@ def write_pseudobulk(adata: ad.AnnData, group_columns: list[str], prefix: str, o
             raise RuntimeError(f"Missing or empty pseudobulk output: {path}")
 
 
-# 输入细胞×基因稀疏计数和每细胞总计数，返回按原float32顺序计算的log1p标准化矩阵。
+# Calculate the original float32 library-size normalization and sparse log1p transform.
 def normalize_sparse(matrix: sparse.csr_matrix, totals: np.ndarray) -> sparse.csr_matrix:
-    """按1e4总计数标准化并log1p；输入totals来自完整基因矩阵，不能用子矩阵重新计算。"""
+    """Normalize to 10000 per cell using the supplied totals from the full count matrix."""
     import numpy as np
 
     factors = np.divide(1e4, totals, out=np.zeros_like(totals, dtype=np.float32), where=totals > 0)
@@ -177,9 +177,9 @@ def normalize_sparse(matrix: sparse.csr_matrix, totals: np.ndarray) -> sparse.cs
     return normalized_matrix
 
 
-# 输入gzip MatrixMarket路径，返回表头的行数、列数及非零条目数；找不到表头则停止。
+# Read the dimensions and declared nonzero entries from a gzip Matrix Market header.
 def parse_matrix_header(matrix_path: Path) -> tuple[int, int, int]:
-    """读取首个非%行，返回(n_rows,n_columns,nnz)，不读取或改写矩阵数值。"""
+    """Return row count, column count, and declared entries from the first non-comment line."""
     with gzip.open(matrix_path, "rt") as handle:
         for line in handle:
             if line.startswith("%"):
@@ -192,9 +192,9 @@ def parse_matrix_header(matrix_path: Path) -> tuple[int, int, int]:
     raise ValueError(f"Could not parse Matrix Market header: {matrix_path}")
 
 
-# 输入GEO时期原值，返回清除首尾空格及统一Recurrent后的标签；缺失保持pd.NA。
+# Standardize known recurrence-stage labels from the GEO metadata.
 def normalize_progression(value: str | None) -> object:
-    """返回原公开时期标签映射；未识别的非缺失值不猜测、不改写。"""
+    """Return the published stage label after trimming surrounding spaces."""
     if value is None or pd.isna(value):
         result = pd.NA
         return result
@@ -210,9 +210,9 @@ def normalize_progression(value: str | None) -> object:
     return result
 
 
-# 输入原时期标签，返回Primary/Recurrent或pd.NA，保留原字符串包含判断。
+# Use the original stage substrings to classify the sample time point.
 def derive_tissue_from_progression(value: str | None) -> object:
-    """由统一时期产生组织类别；未知或缺失输入返回pd.NA。"""
+    """Return Primary, Recurrent, or pd.NA for unavailable or unknown stages."""
     progression = normalize_progression(value)
     if progression is pd.NA or pd.isna(progression):
         result = pd.NA
@@ -226,9 +226,9 @@ def derive_tissue_from_progression(value: str | None) -> object:
     return result
 
 
-# 输入GEO配对说明，返回首个匹配整数；缺失或未匹配保持pd.NA。
+# Extract the first pair number from the original GEO pairing field.
 def parse_pair_id(value: str | None) -> object:
-    """按原正则提取pair编号，保留首个数字匹配规则。"""
+    """Return the first matching integer, or pd.NA when the field has no match."""
     if value is None or pd.isna(value):
         result = pd.NA
         return result
@@ -238,9 +238,9 @@ def parse_pair_id(value: str | None) -> object:
     return result
 
 
-# 输入缓存GSM文本路径，返回原十个字段的样本字典；只读取本地文件，不联网。
+# Read the ten original sample fields from the local cached GSM text.
 def parse_geo_sample_text(text_path: Path) -> dict[str, object]:
-    """逐行提取GEO样本元数据；未出现字段保持pd.NA，重复字段仍由最后一行覆盖。"""
+    """Return the parsed GEO metadata, using the last value when a field is repeated."""
     metadata = {
         "gsm_id": text_path.stem,
         "sample_title": pd.NA,
@@ -262,7 +262,7 @@ def parse_geo_sample_text(text_path: Path) -> dict[str, object]:
             metadata["source_name"] = raw_line.split(" = ", 1)[1].strip()
             continue
 
-        # 只有characteristics行进入字段解析，提前跳过可避免五层嵌套。
+        # Parse study characteristics using their original key and value fields.
         if not raw_line.startswith("!Sample_characteristics_ch1 = "):
             continue
 
@@ -289,9 +289,9 @@ def parse_geo_sample_text(text_path: Path) -> dict[str, object]:
     return metadata
 
 
-# 输入GSE274546文库ID及原始目录，返回细胞×基因CSR、唯一基因名和barcode列表。
+# Read standard Matrix Market counts and identifiers for one GSE274546 library.
 def read_gse274546_library(library_id: str, raw_root: Path) -> tuple[sparse.csr_matrix, list[str], list[str]]:
-    """读取标准MatrixMarket文库；缺文件或矩阵与无表头TSV维度不符时停止。"""
+    """Return cell-by-gene CSR counts, gene names, and barcodes after checking dimensions."""
     import numpy as np
     from scipy.io import mmread
 
@@ -303,7 +303,7 @@ def read_gse274546_library(library_id: str, raw_root: Path) -> tuple[sparse.csr_
     if missing_paths:
         raise FileNotFoundError("; ".join(map(str, missing_paths)))
 
-    # 无表头TSV使用首列；先保存整表再提取向量，保留原基因和barcode顺序。
+    # Take the first column of each headerless TSV in the original file order.
     gene_table = pd.read_csv(genes_path, sep="\t", header=None)
     genes = gene_table.iloc[:, 0].astype(str).tolist()
     barcode_table = pd.read_csv(barcodes_path, sep="\t", header=None)
@@ -318,14 +318,14 @@ def read_gse274546_library(library_id: str, raw_root: Path) -> tuple[sparse.csr_
     return result
 
 
-# 输入文库ID、细胞×基因矩阵、barcode顺序和singlet分类表，返回筛选矩阵及对齐后的分类表。
+# Select the singlet cells in the order in which they appear in the classification table.
 def select_singlets(
     library_id: str,
     matrix: sparse.csr_matrix,
     barcodes: list[str],
     classification_table: pd.DataFrame,
 ) -> tuple[sparse.csr_matrix, pd.DataFrame]:
-    """保持分类表行序筛选singlet；分类barcode不在原始矩阵时停止。"""
+    """Return the filtered counts and aligned annotations, checking barcode membership."""
     import numpy as np
 
     selected_table = classification_table.loc[classification_table["capture_id"].eq(library_id)].copy()
@@ -341,9 +341,9 @@ def select_singlets(
     return result
 
 
-# 输入一列P值，返回同长度BH校正数组；缺失值位置保持NaN。
+# Adjust finite P values within the supplied family and preserve missing entries.
 def bh(values: pd.Series) -> np.ndarray:
-    """仅对非缺失P值执行fdr_bh，返回与输入位置一致的数组。"""
+    """Return the BH-adjusted P values aligned to the input series."""
     import numpy as np
     from statsmodels.stats.multitest import multipletests
 
@@ -355,9 +355,9 @@ def bh(values: pd.Series) -> np.ndarray:
     return adjusted_values
 
 
-# 输入患者内差值及原种子，返回双侧符号翻转P值；少于3个有限差值时返回NaN。
+# Compute a paired two-sided sign-flip P value from finite patient differences.
 def sign_flip_p(delta: np.ndarray, seed: int = 20260712) -> float:
-    """沿用200000次随机符号翻转及加一校正，不改变抽样矩阵或计算顺序。"""
+    """Use 200000 sign permutations and the original plus-one correction."""
     import numpy as np
 
     delta = np.asarray(delta, dtype=float)
@@ -374,9 +374,9 @@ def sign_flip_p(delta: np.ndarray, seed: int = 20260712) -> float:
     return result
 
 
-# 输入AnnData、基因列表及暂存score列名，返回每细胞一值的原Scanpy对照基因评分。
+# Score detected genes in AnnData with the published Scanpy control-gene settings.
 def control_gene_score(adata: ad.AnnData, genes: list[str], score_name: str) -> np.ndarray:
-    """返回score数组并移除暂存列；ctrl_size=50、n_bins=25、seed=20260712均为原固定设置。"""
+    """Return the per-cell scores and remove the temporary score column."""
     import numpy as np
     import scanpy as sc
 
@@ -385,7 +385,7 @@ def control_gene_score(adata: ad.AnnData, genes: list[str], score_name: str) -> 
         scores = np.full(adata.n_obs, np.nan)
         return scores
 
-    # 每次调用重设相同种子是原设计；改成共享随机流会改变对照基因选择。
+    # Reset the original seed so each call reproduces its published control genes.
     sc.tl.score_genes(
         adata,
         gene_list    = present_genes,
@@ -399,9 +399,9 @@ def control_gene_score(adata: ad.AnnData, genes: list[str], score_name: str) -> 
     return scores
 
 
-# 输入三个同索引Series，返回调整协变量后的rank残差相关系数、P值和完整观测数。
+# Rank-transform the three indexed series and correlate their covariate-adjusted residuals.
 def partial_spearman(x_values: pd.Series, y_values: pd.Series, covariate: pd.Series) -> tuple[float, float, int]:
-    """至少20个完整观测；秩、最小二乘残差、Pearson顺序及公式与原实现相同。"""
+    """Return the residual correlation, P value, and the number of complete rows."""
     import numpy as np
     from scipy import stats
 
@@ -419,9 +419,9 @@ def partial_spearman(x_values: pd.Series, y_values: pd.Series, covariate: pd.Ser
     return result
 
 
-# 输入本地SOFT路径，返回保序样本字典列表；保持原GEO字段解析和FTP转换规则。
+# Read the local SOFT file and preserve its sample order and public download links.
 def parse_soft(path: Path) -> list[dict[str, object]]:
-    """解析 SAMPLE 区块；输入本地 SOFT，返回样本列表，不执行下载。"""
+    """Parse the sample records and return their selected metadata fields."""
     opener = gzip.open if path.suffix == ".gz" else open
     samples: list[dict[str, object]] = []
     current: dict[str, object] | None = None
@@ -436,7 +436,7 @@ def parse_soft(path: Path) -> list[dict[str, object]]:
             if current is None:
                 continue
 
-            # characteristics 的冒号分隔规则和 FTP 转 HTTPS 规则均保持原样。
+            # Parse colon-separated characteristics and convert FTP links to HTTPS.
             if line.startswith("!Sample_title = "):
                 current["sample_title"] = line.split("=", 1)[1].strip()
             elif line.startswith("!Sample_characteristics_ch1 = ") and ":" in line.split("=", 1)[1]:
@@ -452,9 +452,9 @@ def parse_soft(path: Path) -> list[dict[str, object]]:
     return samples
 
 
-# 输入GSE174554文库行和原始目录，返回细胞×基因CSR、基因与barcode列表；维度不符时停止。
+# Load raw counts and feature identifiers for one GSE174554 library.
 def read_gse174554_library(row: pd.Series, raw_root: Path) -> tuple[sparse.csr_matrix, list[str], list[str]]:
-    """读取一个文库；SF8963沿用逐行解析，其他文库沿用scipy.mmread。"""
+    """Use the repaired parser for SF8963 and scipy.mmread for standard libraries."""
     import numpy as np
     from scipy.io import mmread
 
@@ -465,7 +465,7 @@ def read_gse174554_library(row: pd.Series, raw_root: Path) -> tuple[sparse.csr_m
         if not path.exists():
             raise FileNotFoundError(path)
 
-    # 两份TSV原本无表头，首列分别是基因及barcode；读取后再明确取列。
+    # Read the first column from each headerless gene and barcode TSV.
     feature_table = pd.read_csv(features_path, sep="\t", header=None)
     features = feature_table.iloc[:, 0].astype(str).tolist()
     barcode_table = pd.read_csv(barcodes_path, sep="\t", header=None)
@@ -483,8 +483,8 @@ def read_gse174554_library(row: pd.Series, raw_root: Path) -> tuple[sparse.csr_m
     return result
 
 
-# 输入分组Series，返回首个非缺失元数据值；供多个样本汇总字段共用。
+# Resolve repeated metadata within a group using the first available entry.
 def first_nonmissing(values):
-    """输入分组Series，返回首个非缺失值；全缺失时返回pd.NA。"""
+    """Return the first nonmissing value, or pd.NA for an entirely missing group."""
     result = next((value for value in values if pd.notna(value)), pd.NA)
     return result

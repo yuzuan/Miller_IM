@@ -1,0 +1,3 @@
+center_group,n_pairs,n_incomplete_records,n_complete_records,mean_paired_change,mean_change_complete_records,mean_change_incomplete_records
+Pitié-Salpêtrière Hospital,10,6,4,0.5529301545717547,0.5835249354731691,0.5325336339708117
+Other centers,35,2,33,0.05738997703864906,-0.013115856054128515,1.220736223069479

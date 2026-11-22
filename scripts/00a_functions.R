@@ -1,16 +1,16 @@
 # ======================================================================
-# 00a_functions.R —— Miller_IM 公共函数库
-# Miller_IM：复发胶质母细胞瘤公开分析代码
+# 00a_functions.R — Miller-IM shared R functions
+# Paired glioblastoma recurrence and external cohort analyses.
 #
-# 目的：
-# 统一多个 R 脚本共用的计数输入检查、固定程序富集和图件导出。
-# 只归并已有实现；原分析阈值、输出字段与随机数顺序保持不变。
-# 本函数脚本不用单独浏览学习，在其它分析脚本调用到它时再学。
-# 用 RStudio 打开本脚本，在调用处 Ctrl + 左键（Mac 为 Cmd + 左键）点函数名可跳转到定义。
-# 函数定义的查找靠上面的跳转，不靠文件头清单。
+# Purpose
+# Share count input, fixed-program enrichment, and figure exports between the R workflows.
+# Preserve test settings, output fields, and random number order across callers.
+# The analysis scripts show which functions are used at each step.
+# Use go-to-definition in the editor to read a function from its call site.
+# The signatures document the parameters passed by each workflow.
 
-# 输入：基因×样本的 gzip CSV，首列为行名；输出：保留行列顺序的整数矩阵。
-# 非有限、非整数、负计数或重复基因时停止；1e-8 是原有整数容差。
+# Read a gzip CSV of gene counts with gene identifiers in the first column.
+# Use the original count tolerance of 1e-8 and reject nonfinite or duplicate entries.
 read_count_matrix <- function(path) {
     count_table <- read.csv(gzfile(path), row.names = 1, check.names = FALSE)
     count_matrix <- as.matrix(count_table)
@@ -23,9 +23,9 @@ read_count_matrix <- function(path) {
     return(count_matrix)
 }
 
-# 输入：命名基因集列表和命名排序向量；输出：fgsea 结果 data.frame，leadingEdge 为分号文本。
-# 供独立队列与 LOPO 共用；原种子 42、5–500 基因边界、eps=0 和 SerialParam 均保留。
-# 调用脚本已加载 fgsea 和 BiocParallel；这里不更换并行后端或额外消耗随机数。
+# Run fgsea from a named gene set list and a named ranked vector. Join leading-edge genes with semicolons.
+# The recurrence and leave-one-out analyses use seed 42, sizes 5–500, eps = 0, and SerialParam.
+# The caller loads fgsea and BiocParallel before sourcing these functions.
 run_fixed_gsea <- function(pathways, rank_stat) {
     tested <- vector("list", length(pathways))
     names(tested) <- names(pathways)
@@ -46,8 +46,8 @@ run_fixed_gsea <- function(pathways, rank_stat) {
     return(result_table)
 }
 
-# 输入：已保存的单页 PDF、PNG 目标及分辨率；输出：无返回值，写 PNG 并核对非空。
-# pdftools 是明确的公开依赖；两个绘图入口均从各自 PDF 母版转换，不重画 PNG。
+# Convert a saved one-page PDF to a PNG at the requested resolution and verify it is nonempty.
+# The proteome and PD-1 plots use pdftools to render the saved single-page PDF.
 render_pdf_png <- function(pdf_path, png_path, dpi = 600) {
     if (!file.exists(pdf_path)) stop("Missing PDF: ", pdf_path)
     dir.create(dirname(png_path), recursive = TRUE, showWarnings = FALSE)
@@ -56,8 +56,8 @@ render_pdf_png <- function(pdf_path, png_path, dpi = 600) {
     stopifnot(all(file.exists(output_paths)), all(file.info(output_paths)$size > 0))
 }
 
-# 输入：图对象、文件名、输出目录及英寸尺寸；输出：无返回值，保存 PDF 与派生 PNG。
-# 图对象在预览前保留随机状态；PDF 使用原首轮绘图状态，第二次预览替代旧 PNG 的随机绘图消耗。
+# Save a plot as a PDF and render its PNG using the supplied dimensions in inches.
+# Save the first draw's random state for the PDF. A second preview preserves the next plot's jitter sequence.
 save_plot_pair <- function(plot, stem, dir_path, width, height) {
     dir.create(dir_path, recursive = TRUE, showWarnings = FALSE)
     plot_seed <- .Random.seed
@@ -67,7 +67,7 @@ save_plot_pair <- function(plot, stem, dir_path, width, height) {
     pdf_path <- file.path(dir_path, paste0(stem, ".pdf"))
     ggsave(pdf_path, plot = plot, width = width, height = height, device = cairo_pdf)
 
-    # 旧代码在写 PNG 时还会绘制一次；保留该次随机消耗，避免影响后面的 jitter。
+    # The original PNG render drew the plot a second time. Consume the same draws here.
     print(plot)
     dev.off()
     normalise_pdf_metadata(pdf_path)
@@ -75,8 +75,8 @@ save_plot_pair <- function(plot, stem, dir_path, width, height) {
     render_pdf_png(pdf_path, png_path, dpi = 600)
 }
 
-# 输入：PDF 文件；输出：无返回值，沿用原 pypdf 元数据规则替换文件；失败立即停止。
-# Python 是原公开实现的既有依赖；shQuote 保证含空格的项目路径作为完整参数传递。
+# Replace the PDF metadata with the original pypdf settings.
+# Quote the Python argument so a PDF path containing spaces is passed as a single value.
 normalise_pdf_metadata <- function(pdf_path) {
     py_script <- tempfile(pattern = "normalise_pdf_", fileext = ".py")
     python_lines <- c(
@@ -107,7 +107,7 @@ normalise_pdf_metadata <- function(pdf_path) {
     if (!ok) stop("Failed to replace PDF after metadata normalisation: ", pdf_path)
 }
 
-# 输入：按优先级排列的候选路径及标签；输出：第一个存在路径的绝对形式；无输入时报错。
+# Return the first existing candidate as an absolute path, or raise an error naming the input.
 locate_required <- function(candidates, label) {
     existing <- candidates[file.exists(candidates)]
     if (!length(existing)) stop(label, " not found. Checked: ", paste(candidates, collapse = "; "))
@@ -115,7 +115,7 @@ locate_required <- function(candidates, label) {
     return(result)
 }
 
-# 输入：一组数值；输出：均值及原定义 1.96 标准误区间的命名向量，无有效值时为 NA。
+# Return the mean and the original interval of 1.96 standard errors. Use NA when no values are valid.
 ci_mean <- function(x) {
     x <- x[is.finite(x)]
     n <- length(x)
@@ -129,7 +129,7 @@ ci_mean <- function(x) {
     return(result)
 }
 
-# 输入：面板标识、文件名、说明和目录；输出：保留原五列的单行清单表。
+# Return the original five manifest columns for a single panel.
 panel_manifest <- function(panel, stem, description, out_dir) {
     result_table <- data.table(
         panel = panel,
@@ -141,8 +141,8 @@ panel_manifest <- function(panel, stem, description, out_dir) {
     return(result_table)
 }
 
-# 输入：图对象、文件名、目录及毫米尺寸；输出：无返回值，保留原 PDF 设备参数并派生 PNG。
-# 预览保持 PDF 原随机状态；第二次绘图消耗替代旧版直接输出 PNG 的绘图，不更改后续序列。
+# Save a plot in millimeters using the original PDF device settings and render the PNG.
+# Use the first draw's random state for the PDF and consume the original PNG draw in the second preview.
 save_panel <- function(plot_obj, stem, out_dir, width_mm, height_mm) {
     dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
     plot_seed <- .Random.seed
@@ -171,7 +171,7 @@ save_panel <- function(plot_obj, stem, out_dir, width_mm, height_mm) {
     render_pdf_png(pdf_file, png_file, dpi = 600)
 }
 
-# 输入：结果表、文件名和目录；输出：无返回值，按既有 fwrite 格式写 CSV 并核对非空。
+# Write the table with the published fwrite CSV format and verify the file is nonempty.
 write_csv <- function(input_table, path_stem, out_dir) {
     dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
     output_path <- file.path(out_dir, paste0(path_stem, ".csv"))
@@ -179,7 +179,7 @@ write_csv <- function(input_table, path_stem, out_dir) {
     stopifnot(file.exists(output_path), file.info(output_path)$size > 0)
 }
 
-# 输入：结果表、文件名和目录；输出：无返回值，沿用 fwrite 的 gzip 写出并核对非空。
+# Write the gzip CSV with the published fwrite settings and verify the file is nonempty.
 write_csv_gz <- function(input_table, path_stem, out_dir) {
     dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
     output_path <- file.path(out_dir, paste0(path_stem, ".csv.gz"))
@@ -187,7 +187,7 @@ write_csv_gz <- function(input_table, path_stem, out_dir) {
     stopifnot(file.exists(output_path), file.info(output_path)$size > 0)
 }
 
-# 输入：表、Markdown 路径、标题和说明；输出：无返回值，写原列序的 Markdown 表。
+# Write a Markdown table, with its existing column order, title, and description.
 write_markdown_table <- function(input_table, file_path, title_text, intro_lines = character()) {
     display_table <- as.data.frame(input_table, stringsAsFactors = FALSE)
     header <- paste(colnames(display_table), collapse = " | ")
@@ -208,8 +208,8 @@ write_markdown_table <- function(input_table, file_path, title_text, intro_lines
     stopifnot(file.exists(file_path), file.info(file_path)$size > 0)
 }
 
-# 输入：原始 RDS 路径；输出：R 对象。按原顺序尝试普通、gzip、双 gzip，三次均失败才停止。
-# error 处理直接返回条件对象，由主流程判断，不再嵌套三层匿名错误处理。
+# Read the cached object as plain, gzip, or double-gzip RDS, in that order.
+# Return the error condition to the caller so the next reader can be attempted.
 read_rds_auto <- function(path) {
     result <- tryCatch(readRDS(path), error = identity)
     if (!inherits(result, "error")) return(result)
@@ -220,7 +220,7 @@ read_rds_auto <- function(path) {
     return(result)
 }
 
-# 输入：基因×样本表达矩阵；输出：逐基因 z 分数矩阵，保留原无效标准差置 NA/最终非有限值置 0。
+# Compute gene-wise z scores, then set nonfinite standardized values to zero.
 safe_zscore_rows <- function(x) {
     m <- rowMeans(x, na.rm = TRUE)
     s <- apply(x, 1, sd, na.rm = TRUE)
@@ -231,7 +231,7 @@ safe_zscore_rows <- function(x) {
     return(z)
 }
 
-# 输入：P 值；输出：原阈值和小数位格式的字符串，无有效 P 值时返回 NA 文本。
+# Format finite P values at the original threshold and precision. Display missing values as NA.
 build_p_label <- function(p) {
     if (!is.finite(p) || is.na(p)) {
         result <- "NA"
@@ -243,7 +243,7 @@ build_p_label <- function(p) {
     return(result)
 }
 
-# 输入：线性模型、系数名称及队列说明；输出：原效应、95% CI、P 值和附加字段的单行表。
+# Return one model summary row, including the specified effect, its 95% CI, and the P value.
 extract_model_row <- function(
     model,
     coef_name,
@@ -276,7 +276,7 @@ extract_model_row <- function(
     return(model_table)
 }
 
-# 输入：基础字号；输出：沿用调用脚本 pal 配色的 ggplot 主题；不修改会话选项。
+# Create a ggplot theme from the requested type size and the caller's color palette.
 theme_panel <- function(base_size = 7.5) {
     result_theme <- theme_classic(base_size = base_size, base_family = "sans")
     result_theme <- result_theme + theme(

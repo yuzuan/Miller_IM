@@ -1,0 +1,7 @@
+panel,stem,message,source,provenance
+A,Figure1A_paired_cohort_design,Two independent paired recurrence cohorts and patient-level MG-Inflam20 analysis design,figures_R1/_font_build/fig1/data/Figure1/source_data/Figure1A_paired_cohort_design_source.csv,vector redraw from Figure1A_compact_paired_design
+B,Figure1B_GSE174554_raw20_gsea,GSE174554 paired pseudobulk raw20 GSEA,figures_R1/_font_build/fig1/data/Figure1/source_data/Figure1B_GSE174554_raw20_gsea_source.csv.gz,
+C,Figure1C_GSE274546_raw20_gsea,GSE274546 paired pseudobulk raw20 GSEA,figures_R1/_font_build/fig1/data/Figure1/source_data/Figure1C_GSE274546_raw20_gsea_source.csv.gz,
+D,Figure1D_shared_raw20_outliers,Shared MG-Inflam20 leading-edge genes occupy the joint recurrent-enriched region,figures_R1/_font_build/fig1/data/Figure1/source_data/Figure1D_shared_raw20_outliers_source.csv,redrawn from Step46 all-gene rank source; no naked genome-wide correlation annotation
+E,Figure1E_shared_leading_edge_gene_effects,Effect sizes of the seven shared leading-edge genes in both cohorts,figures_R1/_font_build/fig1/data/Figure1/source_data/Figure1E_shared_leading_edge_gene_effects_source.csv,redrawn from Step45 gene-level effect source; redundant cohort GSEA text removed
+F,Figure1F_leave_one_patient_out_gsea_stability,Leave-one-patient-out stability,figures_R1/_font_build/fig1/data/Figure1/source_data/Figure1F_leave_one_patient_out_raw20_gsea.csv,vector redraw from frozen data

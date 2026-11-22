@@ -4,18 +4,18 @@ Run commands from the repository root. Scripts are numbered consecutively by dat
 
 | Stage | Scripts | Output used downstream |
 |---|---|---|
-| Public-data manifests | `01a_公共数据清单.py`, `01b_GSE278456样本清单.py` | Library/sample manifests |
-| GSE174554 reconstruction | `02a_GSE174554补充矩阵.py`, `02b_GSE174554质控.R`, `02c_GSE174554髓系重建.py` | Quality-filtered pan-myeloid raw-count pseudobulk |
-| GSE274546 reconstruction | `03a_GSE274546矩阵转换.R`, `03b_GSE274546质控.R`, `03c_GSE274546独立重注释.py` | Quality-filtered pan-myeloid raw-count pseudobulk |
-| Paired recurrence tests | `04_配对复发统计.R` | IDH-restricted paired edgeR statistics, nominal single-set fgsea results, gene directions, and GSE174554 exclusion audit |
-| Figure 1 | `05a_队列证据图.py`, `05b_配对复发图.py`, `05c_复发证据布局.py`, `05d_炎症程序图.py`, `05e_留一患者分析.R`, `05f_共享基因与稳健性图.py`, `05g_Figure1主图.py` | Six-panel recurrence figure and LOPO audit |
-| Figure 2 | `06a_GSE278456髓系与空间验证.py`, `06b_细胞身份与状态图.py`, `06c_Figure2主图.py` | State localization and marker-leakage control |
-| Figure 3 | `07a_空间证据整理.py`, `07b_空间关联图.py`, `07c_空间与配对表达图.py`, `07d_Figure3主图.py` | Paired GeoMx and linked Visium analyses |
-| Figure 4 | `08a_配对蛋白统计.R`, `08b_Figure4主图.py` | Paired protein score, protein effects, nominal competitive enrichment |
-| Figure 5 | `09a_PD1治疗相关分析.R`, `09b_Figure5主图.py` | Anti-PD-1 gene-set and adjusted patient-score analyses |
-| Final checks | `10a_主图结果核验.py`, `10b_公开数据核验.py` | Figure-value audit and frozen-release audit |
+| Public-data manifests | `01a_public_data_manifests.py`, `01b_gse278456_sample_manifest.py` | Library/sample manifests |
+| GSE174554 reconstruction | `02a_gse174554_matrix_repair.py`, `02b_gse174554_quality_control.R`, `02c_gse174554_myeloid_reconstruction.py` | Quality-filtered pan-myeloid raw-count pseudobulk |
+| GSE274546 reconstruction | `03a_gse274546_matrix_conversion.R`, `03b_gse274546_quality_control.R`, `03c_gse274546_independent_reannotation.py` | Quality-filtered pan-myeloid raw-count pseudobulk |
+| Paired recurrence tests | `04_paired_recurrence_statistics.R` | IDH-restricted paired edgeR statistics, nominal single-set fgsea results, gene directions, and GSE174554 exclusion audit |
+| Figure 1 | `05a_cohort_evidence.py`, `05b_paired_recurrence_panels.py`, `05c_recurrence_evidence_layout.py`, `05d_inflammatory_program_panels.py`, `05e_leave_one_patient_out.R`, `05f_shared_genes_and_robustness.py`, `05g_figure1.py` | Six-panel recurrence figure and LOPO audit |
+| Figure 2 | `06a_gse278456_myeloid_spatial_validation.py`, `06b_cell_identity_and_state.py`, `06c_figure2.py` | State localization and marker-leakage control |
+| Figure 3 | `07a_spatial_evidence.py`, `07b_spatial_associations.py`, `07c_spatial_and_paired_expression.py`, `07d_figure3.py` | Paired GeoMx and linked Visium analyses |
+| Figure 4 | `08a_paired_proteome_statistics.R`, `08b_figure4.py` | Paired protein score, protein effects, nominal competitive enrichment |
+| Figure 5 | `09a_pd1_association_analysis.R`, `09b_figure5.py` | Anti-PD-1 gene-set and adjusted patient-score analyses |
+| Final checks | `10a_audit_main_figures.py`, `10b_validate_release.py` | Figure-value audit and frozen-release audit |
 
-After activating the recorded Python environment, `03d_GSE274546运行入口.sh` runs the GSE274546 QC and reannotation stages in sequence. Matrix conversion must already be complete.
+After activating the recorded Python environment, `03d_run_gse274546.sh` runs the GSE274546 QC and reannotation stages in sequence. Matrix conversion must already be complete.
 
 The main recurrence analysis is prespecified at at least 20 retained myeloid cells per patient and time point. The 50-cell analysis is a sensitivity analysis. GSE278456 and the two linked GSE276841 Visium cases originate from the same study and are not treated as independent patient replication.
 

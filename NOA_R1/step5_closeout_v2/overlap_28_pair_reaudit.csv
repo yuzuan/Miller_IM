@@ -1,0 +1,29 @@
+pair_number,source_a,source_b,classification,evidence_url_a,evidence_url_b
+1,GSE174554,GSE274546,evidence supports no overlap,https://www.nature.com/articles/s43018-022-00475-x,https://www.nature.com/articles/s41588-025-02168-4
+2,GSE174554,GSE278456,evidence supports no overlap,https://www.nature.com/articles/s43018-022-00475-x,https://pmc.ncbi.nlm.nih.gov/articles/PMC12836367/
+3,GSE174554,GSE276841,evidence supports no overlap,https://www.nature.com/articles/s43018-022-00475-x,https://pmc.ncbi.nlm.nih.gov/articles/PMC12836367/
+4,GSE174554,GeoMx_Zenodo16839828,evidence supports no overlap,https://www.nature.com/articles/s43018-022-00475-x,https://link.springer.com/article/10.1007/s00401-025-02937-9
+5,GSE174554,PDC000514,evidence supports no overlap,https://www.nature.com/articles/s43018-022-00475-x,https://pmc.ncbi.nlm.nih.gov/articles/PMC10939876/
+6,GSE174554,GSE121810,possible overlap due to shared sources,https://www.nature.com/articles/s43018-022-00475-x,https://escholarship.org/content/qt7gf847t7/qt7gf847t7_noSplash_e1f45a73ebcbea28921e3801ba049f36.pdf
+7,GSE174554,GSE154795,evidence supports no overlap,https://www.nature.com/articles/s43018-022-00475-x,https://www.nature.com/articles/s41467-021-26940-2
+8,GSE274546,GSE278456,evidence supports no overlap,https://www.nature.com/articles/s41588-025-02168-4,https://pmc.ncbi.nlm.nih.gov/articles/PMC12836367/
+9,GSE274546,GSE276841,evidence supports no overlap,https://www.nature.com/articles/s41588-025-02168-4,https://pmc.ncbi.nlm.nih.gov/articles/PMC12836367/
+10,GSE274546,GeoMx_Zenodo16839828,evidence supports no overlap,https://www.nature.com/articles/s41588-025-02168-4,https://link.springer.com/article/10.1007/s00401-025-02937-9
+11,GSE274546,PDC000514,possible overlap due to shared sources,https://www.nature.com/articles/s41588-025-02168-4,https://pmc.ncbi.nlm.nih.gov/articles/PMC10939876/
+12,GSE274546,GSE121810,possible overlap due to shared sources,https://www.nature.com/articles/s41588-025-02168-4,https://escholarship.org/content/qt7gf847t7/qt7gf847t7_noSplash_e1f45a73ebcbea28921e3801ba049f36.pdf
+13,GSE274546,GSE154795,evidence supports no overlap,https://www.nature.com/articles/s41588-025-02168-4,https://www.nature.com/articles/s41467-021-26940-2
+14,GSE278456,GSE276841,known overlap,https://pmc.ncbi.nlm.nih.gov/articles/PMC12836367/,https://pmc.ncbi.nlm.nih.gov/articles/PMC12836367/
+15,GSE278456,GeoMx_Zenodo16839828,evidence supports no overlap,https://pmc.ncbi.nlm.nih.gov/articles/PMC12836367/,https://link.springer.com/article/10.1007/s00401-025-02937-9
+16,GSE278456,PDC000514,evidence supports no overlap,https://pmc.ncbi.nlm.nih.gov/articles/PMC12836367/,https://pmc.ncbi.nlm.nih.gov/articles/PMC10939876/
+17,GSE278456,GSE121810,evidence supports no overlap,https://pmc.ncbi.nlm.nih.gov/articles/PMC12836367/,https://escholarship.org/content/qt7gf847t7/qt7gf847t7_noSplash_e1f45a73ebcbea28921e3801ba049f36.pdf
+18,GSE278456,GSE154795,evidence supports no overlap,https://pmc.ncbi.nlm.nih.gov/articles/PMC12836367/,https://www.nature.com/articles/s41467-021-26940-2
+19,GSE276841,GeoMx_Zenodo16839828,evidence supports no overlap,https://pmc.ncbi.nlm.nih.gov/articles/PMC12836367/,https://link.springer.com/article/10.1007/s00401-025-02937-9
+20,GSE276841,PDC000514,evidence supports no overlap,https://pmc.ncbi.nlm.nih.gov/articles/PMC12836367/,https://pmc.ncbi.nlm.nih.gov/articles/PMC10939876/
+21,GSE276841,GSE121810,evidence supports no overlap,https://pmc.ncbi.nlm.nih.gov/articles/PMC12836367/,https://escholarship.org/content/qt7gf847t7/qt7gf847t7_noSplash_e1f45a73ebcbea28921e3801ba049f36.pdf
+22,GSE276841,GSE154795,evidence supports no overlap,https://pmc.ncbi.nlm.nih.gov/articles/PMC12836367/,https://www.nature.com/articles/s41467-021-26940-2
+23,GeoMx_Zenodo16839828,PDC000514,evidence supports no overlap,https://link.springer.com/article/10.1007/s00401-025-02937-9,https://pmc.ncbi.nlm.nih.gov/articles/PMC10939876/
+24,GeoMx_Zenodo16839828,GSE121810,evidence supports no overlap,https://link.springer.com/article/10.1007/s00401-025-02937-9,https://escholarship.org/content/qt7gf847t7/qt7gf847t7_noSplash_e1f45a73ebcbea28921e3801ba049f36.pdf
+25,GeoMx_Zenodo16839828,GSE154795,evidence supports no overlap,https://link.springer.com/article/10.1007/s00401-025-02937-9,https://www.nature.com/articles/s41467-021-26940-2
+26,PDC000514,GSE121810,evidence supports no overlap,https://pmc.ncbi.nlm.nih.gov/articles/PMC10939876/,https://escholarship.org/content/qt7gf847t7/qt7gf847t7_noSplash_e1f45a73ebcbea28921e3801ba049f36.pdf
+27,PDC000514,GSE154795,evidence supports no overlap,https://pmc.ncbi.nlm.nih.gov/articles/PMC10939876/,https://www.nature.com/articles/s41467-021-26940-2
+28,GSE121810,GSE154795,possible overlap due to shared sources,https://escholarship.org/content/qt7gf847t7/qt7gf847t7_noSplash_e1f45a73ebcbea28921e3801ba049f36.pdf,https://www.nature.com/articles/s41467-021-26940-2

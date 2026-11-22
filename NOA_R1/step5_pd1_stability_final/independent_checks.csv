@@ -1,0 +1,9 @@
+check,passed,detail
+GSE121810 unadjusted independent_lm,TRUE,
+GSE121810 proxy_only independent_lm,TRUE,
+GSE121810 full independent_lm,TRUE,
+GSE121810 independent_leave_one_out,TRUE,
+GSE154795 unadjusted independent_lm,TRUE,
+GSE154795 proxy_only independent_lm,TRUE,
+GSE154795 full independent_lm,TRUE,
+GSE154795 independent_leave_one_out,TRUE,

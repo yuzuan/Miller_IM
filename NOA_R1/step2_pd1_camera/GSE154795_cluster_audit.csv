@@ -1,0 +1,17 @@
+cluster,n_cells,best_lineage,is_auto_myeloid
+0,76634,Myeloid,TRUE
+1,24870,Erythroid,FALSE
+10,2,Myeloid,FALSE
+11,2,Myeloid,FALSE
+12,2,Myeloid,FALSE
+13,2,Myeloid,FALSE
+14,2,Myeloid,FALSE
+15,2,Myeloid,FALSE
+2,17269,Plasma,FALSE
+3,16702,Neural_glial,FALSE
+4,14322,T_NK,FALSE
+5,6654,B_cell,FALSE
+6,2,Myeloid,FALSE
+7,2,Myeloid,FALSE
+8,297,Myeloid,TRUE
+9,2,Myeloid,FALSE

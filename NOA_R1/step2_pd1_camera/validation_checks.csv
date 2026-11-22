@@ -1,0 +1,12 @@
+dataset,check,passed,detail
+GSE121810,full_rank_and_19_genes,TRUE,
+GSE121810,original_fixed_P_reproduced,TRUE,2.81295477233785e-05 2.81295477233785e-05
+GSE154795,count_meta_alignment,TRUE,
+GSE154795,strict_clusters_match_frozen,TRUE,"0,8"
+GSE154795,formal_samples_match_frozen,TRUE,21 21
+GSE154795,full_rank,TRUE,
+GSE154795,unique_condition_coef,TRUE,
+GSE154795,nineteen_genes,TRUE,
+GSE154795,original_fixed_P_reproduced,TRUE,0.015367499497791 0.015367499497791
+both,fixed_original_Ps_passed,TRUE,
+both,all_four_P_finite,TRUE,

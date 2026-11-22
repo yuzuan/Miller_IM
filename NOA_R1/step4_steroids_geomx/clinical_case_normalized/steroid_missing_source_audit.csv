@@ -1,0 +1,9 @@
+analysis_patient_id,source_patient_id,tissue_source,processing_laboratory
+GSE274546_DU03,P3,Duke University,Lab2
+GSE274546_FR01,P41,Pitié-Salpêtrière Hospital,Lab1
+GSE274546_FR02,P42,Pitié-Salpêtrière Hospital,Lab1
+GSE274546_FR07,P47,Pitié-Salpêtrière Hospital,Lab1
+GSE274546_FR10,P50,Pitié-Salpêtrière Hospital,Lab2
+GSE274546_FR11,P51,Pitié-Salpêtrière Hospital,Lab2
+GSE274546_FR16,P56,Pitié-Salpêtrière Hospital,Lab2
+GSE274546_TK13,P32,Tokyo University,Lab1

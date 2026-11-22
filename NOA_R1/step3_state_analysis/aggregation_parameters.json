@@ -1,0 +1,17 @@
+{
+  "source": "frozen Step71 assignments; raw counts layer",
+  "chunk_size": 2048,
+  "sum_dtype": "int64",
+  "thresholds": [
+    20,
+    10
+  ],
+  "min_pairs": 6,
+  "packages": {
+    "anndata": "0.11.4",
+    "h5py": "3.16.0",
+    "numpy": "2.2.6",
+    "scipy": "1.15.3",
+    "pandas": "2.3.3"
+  }
+}

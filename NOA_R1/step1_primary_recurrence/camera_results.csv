@@ -1,0 +1,5 @@
+dataset,role,correlation_mode,n_pairs,n_genes,tested_universe,residual_df,camera_reference_df,correlation,effective_correlation,effective_vif,direction,p_value,test,contrast
+GSE174554,primary,estimated,17,19,10245,16,16,0.151861104944742,0.151861104944742,3.73349988900536,Up,0.00612546791347958,two-sided competitive camera,Recurrent minus Primary
+GSE174554,sensitivity,fixed_0.01,17,19,10245,16,10243,0.01,0.01,1.18,Up,2.079799545144e-08,two-sided competitive camera,Recurrent minus Primary
+GSE274546,primary,estimated,45,19,17862,44,44,0.184931661284728,0.184931661284728,4.3287699031251,Up,0.108484924923271,two-sided competitive camera,Recurrent minus Primary
+GSE274546,sensitivity,fixed_0.01,45,19,17862,44,17860,0.01,0.01,1.18,Up,0.00171021646132711,two-sided competitive camera,Recurrent minus Primary

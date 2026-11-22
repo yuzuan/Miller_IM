@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-19",
+  "recovered_from_explicit_cache": true,
+  "thresholds": [
+    20,
+    10
+  ],
+  "minimum_pairs": 6,
+  "minimum_program_genes": 16,
+  "filter": "filterByExpr(group=condition)",
+  "design": "~patient+condition",
+  "normalization": "TMM",
+  "robust_dispersion": true,
+  "robust_QL": true,
+  "legacy": false,
+  "camera": {
+    "primary": "estimated correlation NA",
+    "sensitivity": 0.01,
+    "two_sided": true
+  },
+  "program_adjustment": "BY11 primary; BH11 sensitivity; missing tests P=1 for correction, results NA",
+  "gene_adjustment": "BH within model genome; separately BH across fitted gene-state tests per cohort/threshold",
+  "score": "19 raw measurable genes; TMM on unfiltered model matrix; mean logCPM prior.count1; paired t CI/P",
+  "packages": {
+    "edgeR": "4.4.2",
+    "limma": "3.66.0",
+    "statmod": "1.5.1"
+  }
+}

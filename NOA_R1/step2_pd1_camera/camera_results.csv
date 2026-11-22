@@ -1,0 +1,5 @@
+dataset,mode,contrast,n_samples,n_genes,tested_genes,design_rank,residual_df,camera_reference_df,correlation,effective_vif,direction,p_value
+GSE121810,estimated,groupNeo,29,19,19039,2,27,27,0.316754741618332,6.70158534912997,Up,0.0900049848890829
+GSE121810,fixed_0.01,groupNeo,29,19,19039,2,27,19037,0.01,1.18,Up,2.81295477233785e-05
+GSE154795,estimated,conditionGBM.PD1,21,19,12705,6,15,15,0.473788731487991,9.52819716678383,Up,0.406812890874589
+GSE154795,fixed_0.01,conditionGBM.PD1,21,19,12705,6,15,12703,0.01,1.18,Up,0.015367499497791

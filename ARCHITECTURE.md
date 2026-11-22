@@ -20,3 +20,5 @@ Shared plotting functions are in `scripts/00a_functions.py`. They retain the ori
 Python remains the implementation for the existing AnnData, Scanpy, SciPy and Matplotlib workflow. R remains the implementation for edgeR, limma, fgsea and scDblFinder. The style update does not migrate statistical methods between languages or change seeds, cohort rules, data fields, or frozen source tables.
 
 The script-name map is maintained in `docs/script_names.tsv`. The execution sequence is documented in `docs/analysis_workflow.md`; downloaded inputs are described in `docs/data_layout.md`. Generated `write/` and `figures/` files stay outside version control.
+
+The October R1 workflow, its figure source data, and its dependency order are documented in [NOA_R1](NOA_R1/ARCHITECTURE.md).

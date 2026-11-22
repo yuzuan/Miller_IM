@@ -1,0 +1,4 @@
+panel,stem,message,source
+A,Figure4A_pdc_patient_delta_waterfall,105 paired-patient MG-Inflam20 protein-score changes,figures_R1/_font_build/fig4/data/Figure4/source_data/Figure4A_pdc_patient_delta_waterfall_source.csv
+B,Figure4B_raw20_protein_patient_distributions,Patient-level paired changes for 11 measurable MG-Inflam20 proteins,figures_R1/_font_build/fig4/data/Figure4/source_data/Figure4B_raw20_protein_patient_distributions_source.csv
+C,Figure4C_full_proteome_rank_landscape,All-protein rank landscape with 11 measurable MG-Inflam20 proteins,figures_R1/_font_build/fig4/data/Figure4/source_data/Figure4C_full_proteome_rank_landscape_source.csv
