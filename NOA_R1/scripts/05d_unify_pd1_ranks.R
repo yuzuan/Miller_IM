@@ -1,8 +1,7 @@
 #!/usr/bin/env Rscript
 
 # Purpose  Compare the frozen historical F-based enrichment with a common signed-square-root F ranking.
-# Inputs   target_top20 in step2_locked_gene_sets.csv or
-#          step2_extended_specificity/locked_gene_sets_used.csv (set_id and gene), and
+# Inputs   target_top20 in step2_locked_gene_sets.csv (set_id and gene), and
 #          step2_pd1_camera/{GSE121810,GSE154795}_tested_genes.csv (gene).
 #          NOA_LEGACY_ROOT/write/41_mg_inflammatory_sci_rebuild/Figure5/:
 #          GSE121810_raw20_{edger,fgsea}.csv and GSE154795_raw20_{edger,fgsea}_auto_strict_idhwt.csv.
@@ -38,9 +37,6 @@ record_check <- function(check_name, passed) {
 
 # The packaged gene-set table retains the original target genes in author-ranked order.
 definition_path <- file.path(revision, "step2_locked_gene_sets.csv")
-if (!file.exists(definition_path)) {
-    definition_path <- file.path(revision, "step2_extended_specificity", "locked_gene_sets_used.csv")
-}
 definition_table <- read.csv(definition_path)
 target_genes <- definition_table$gene[definition_table$set_id == "target_top20"]
 record_check("target_20", length(target_genes) == 20L)

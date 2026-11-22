@@ -1,3 +1,0 @@
-dataset,model,covariates,n,parameters,residual_df,contrast,effect,ci_low,ci_high,t,p_value
-GSE121810,original_raw,group,29,2,27,groupNeo,0.437168628285404,0.00206507761077412,0.872272178960034,2.061568863258,0.0489965587472645
-GSE154795,original_raw,MGMT;sequencing_method;gel_bead_version;acquisition_wave;condition,21,6,15,conditionGBM.PD1,0.419426648631063,-0.200990633685098,1.03984393094722,1.44094428879041,0.170149027915721

@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 # Purpose: Fit the frozen paired state-expression models and descriptive within-state target scores.
-# Inputs: step2_gene_sets.csv or step2_extended_specificity/locked_gene_sets_used.csv.
+# Inputs: step2_locked_gene_sets.csv, or step2_gene_sets.csv if rebuilt from the source workbooks.
 # Read step3_state_analysis/{pseudobulk_manifest,expression_pair_coverage}.csv and the listed matrices/metadata.
 # Outputs in step3_state_analysis: state_program_camera.csv, state_all_gene_DE.csv.gz, target_gene_DE.csv,
 # state_score_effects.csv, patient_state_score_changes.csv, state_program_gene_coverage.csv,
@@ -27,9 +27,7 @@ output_dir <- file.path(revision, "step3_state_analysis")
 manifest_table <- read.csv(file.path(output_dir, "pseudobulk_manifest.csv"))
 coverage_table <- read.csv(file.path(output_dir, "expression_pair_coverage.csv"))
 definitions_path <- file.path(revision, "step2_gene_sets.csv")
-if (!file.exists(definitions_path)) {
-    definitions_path <- file.path(revision, "step2_extended_specificity", "locked_gene_sets_used.csv")
-}
+if (!file.exists(definitions_path)) definitions_path <- file.path(revision, "step2_locked_gene_sets.csv")
 definitions_table <- read.csv(definitions_path)
 target <- definitions_table$gene[definitions_table$set_id == "target_top20"]
 model_dir <- file.path(output_dir, "models")

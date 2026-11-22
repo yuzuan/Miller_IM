@@ -1317,76 +1317,8 @@ slice_fig.savefig(pdf_path, bbox_inches="tight")
 render_pdf_png(pdf_path, png_path, dpi=600)
 plt.close(slice_fig)
 
-# Read discovery NES and P values, paired GeoMx changes, and the correlation ranges for the summary.
-report_step38_table = step38_table
-report_geomx = geomx
-report_spatial = spatial
-
-report_geomx_main = (
-    report_geomx["entry_summary"].loc[report_geomx["entry_summary"]["entry"].eq("strict_pass_idhwt")].iloc[0]
-)
-
-report_partial_main_table = (
-    report_spatial["partial"].loc[report_spatial["partial"]["target"].isin(["MDSC", "MES"])].copy()
-)
-report_gse174554_nes = report_step38_table.loc[report_step38_table["dataset"].eq("GSE174554"), "NES"].iloc[0]
-report_gse174554_p = report_step38_table.loc[report_step38_table["dataset"].eq("GSE174554"), "nominal_p"].iloc[0]
-report_gse274546_nes = report_step38_table.loc[report_step38_table["dataset"].eq("GSE274546"), "NES"].iloc[0]
-report_gse274546_p = report_step38_table.loc[report_step38_table["dataset"].eq("GSE274546"), "nominal_p"].iloc[0]
-report_mdsc_rho_min = report_partial_main_table.loc[report_partial_main_table["target"].eq("MDSC"), "partial_rho"].min()
-report_mdsc_rho_max = report_partial_main_table.loc[report_partial_main_table["target"].eq("MDSC"), "partial_rho"].max()
-report_mes_rho_min = report_partial_main_table.loc[report_partial_main_table["target"].eq("MES"), "partial_rho"].min()
-
-report_mes_rho_max = report_partial_main_table.loc[report_partial_main_table["target"].eq("MES"), "partial_rho"].max()
-report_lines = [
-    "# Figure3 / Supplementary Figure6 raw20 summary",
-    "",
-    "## Main results",
-    "",
-    (
-        "- Step 38 raw20 enrichment in GSE174554 had NES="
-        f"{report_gse174554_nes:.3f}"
-        ", nominal P="
-        f"{report_gse174554_p:.2g}"
-        ", and GSE274546 had NES="
-        f"{report_gse274546_nes:.3f}"
-        ", nominal P="
-        f"{report_gse274546_p:.2g}"
-        "."
-    ),
-    (
-        "- The mean raw20 change across 22 strict Artzi IBA1-positive GeoMx IDH-wild-type primary–recurrence pairs was "
-        f"{report_geomx_main['mean_delta']:.3f}"
-        ", FDR="
-        f"{report_geomx_main['fdr']:.2g}"
-        ", positive in "
-        f"{int(report_geomx_main['n_positive'])}"
-        "/"
-        f"{int(report_geomx_main['n_pairs'])}"
-        "."
-    ),
-    (
-        "- For MDSC in the two GSE276841 sections, the total-myeloid-adjusted raw20 partial rho range was "
-        f"{report_mdsc_rho_min:.3f}"
-        "-"
-        f"{report_mdsc_rho_max:.3f}"
-        ", and for MES it was "
-        f"{report_mes_rho_min:.3f}"
-        "-"
-        f"{report_mes_rho_max:.3f}"
-        "."
-    ),
-    "",
-    "## Supplementary analyses",
-    "",
-    "- GeoMx cohort eligibility, IDH status, and treatment strata gave the same direction. The treatment interaction "
-    "remained nonsignificant.",
-    "- Section-specific GSE276841 sensitivity analyses continued to support spatial associations of raw20 with "
-    "MDSC-like and MES-like niches.",
-]
-
-report_path = write_base / "39_raw20_figure_summary.md"
-report_path.write_text("\n".join(report_lines), encoding="utf-8")
-if not report_path.is_file() or report_path.stat().st_size == 0:
-    raise RuntimeError(f"Missing or empty output: {report_path.name}")
-print("GeoMx pairs:", int(report_geomx_main["n_pairs"]), "Visium slices:", visium_spot_table_total["sample"].nunique())
+# Report the formal GeoMx pairs and the number of Visium slices used in the plots.
+geomx_entry_table = geomx["entry_summary"]
+formal_entry_table = geomx_entry_table.loc[geomx_entry_table["entry"].eq("strict_pass_idhwt")]
+formal_pairs = int(formal_entry_table["n_pairs"].iloc[0])
+print("GeoMx pairs:", formal_pairs, "Visium slices:", visium_spot_table_total["sample"].nunique())

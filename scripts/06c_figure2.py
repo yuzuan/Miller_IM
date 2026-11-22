@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Purpose: draw the two Figure 2 panels from the frozen raw20 effects and recomputed author-marker scores.
 # Inputs: Step 48 effects, gene summaries, marker audit, cell annotations and the original GSE278456 H5 files.
-# Outputs: source tables, manifest, legend and report in the Step 50 write directory, with PDF/PNG in figures.
+# Outputs: Source tables and panel manifest in the Step 50 write directory, with PDF and PNG panels in figures.
 # Run: python scripts/06c_figure2.py from the repository root in the single-cell environment.
 # The released workflow uses Scanpy and AnnData for the marker scores and Matplotlib for the panels.
 # Prepared input paths, output names and fields follow the original public analysis.
@@ -23,7 +23,6 @@ from importlib import import_module as load_figure_style
 
 figure_style = load_figure_style("00a_functions")
 render_pdf_png = figure_style.render_pdf_png
-sha256 = figure_style.sha256
 
 # The --plot-only option reads the frozen marker tables. The default branch replays the Step 48 assignments.
 arguments_parser = argparse.ArgumentParser(description="Build the two Figure 2 panels")
@@ -161,21 +160,18 @@ for waterfall_state in state_order:
     waterfall_rows.append(waterfall_data_table)
 waterfall_table_total = pd.concat(waterfall_rows, ignore_index=True)
 
-# Keep separate tables of within-patient marker means, the 9 × 9 summary and sample-level assignment checks.
+# Read or compute the within-patient marker means and the 9 × 9 summary.
 marker_patient_file = source_out / "GSE278456_patient_marker_set_scores_source.csv"
-
 marker_summary_file = source_out / "GSE278456_marker_set_assignment_qc_source.csv"
-marker_audit_file = source_out / "GSE278456_step48_assignment_reproduction_source.csv"
 
-# Plot-only mode uses all three frozen marker tables. The default computes scores from the workbook and H5 files.
+# Plot-only mode reads the two marker-score tables. The default computes scores from the workbook and H5 files.
 if args.plot_only:
-    required = [marker_patient_file, marker_summary_file, marker_audit_file]
+    required = [marker_patient_file, marker_summary_file]
     missing = [str(path) for path in required if not path.exists()]
     if missing:
         raise RuntimeError(f"--plot-only requires these missing frozen source tables: {missing}")
     marker_patient_table = pd.read_csv(marker_patient_file)
     marker_summary_table = pd.read_csv(marker_summary_file)
-    audit_table = pd.read_csv(marker_audit_file)
 else:
 
     # Import the Step 48 marker reader. Its main reconstruction is guarded by the script entry point.
@@ -395,8 +391,8 @@ else:
     if not output_path.is_file() or output_path.stat().st_size == 0:
         raise RuntimeError(f"Missing or empty output: {output_path.name}")
 
-    # Write the source table and confirm the current output file is nonempty.
-    output_path = marker_audit_file
+    # Save the sample-level assignment checks when recalculating the marker scores.
+    output_path = source_out / "GSE278456_step48_assignment_reproduction_source.csv"
     audit_table.to_csv(output_path, index=False)
     if not output_path.is_file() or output_path.stat().st_size == 0:
         raise RuntimeError(f"Missing or empty output: {output_path.name}")
@@ -800,42 +796,7 @@ preview_grayscale = fig_root / "Figure2_two_panel_preview_grayscale.png"
 preview_canvas.convert("L").convert("RGB").save(preview_grayscale, dpi=(150, 150))
 (preview, grayscale) = (preview_preview, preview_grayscale)
 
-# Write the original published figure legend.
-legend_path = write_root / "Figure2_legend.md"
-legend_path.write_text(
-    (
-        "# Figure 2 | The Miller-IM program preferentially maps to MCG1/MCG2-like states "
-        "in an independent cross-sectional myeloid atlas\n\n**A.** Patient-level state-vers"
-        "us-rest waterfall plots in the 21 IDH-wild-type primary GBM samples of GSE278456"
-        ". Each bar is one patient with at least 30 cells in the indicated author-marker-"
-        "derived state and at least 30 cells in the remaining prespecified myeloid states"
-        ". Bars show the difference in control-adjusted Miller-IM score between that stat"
-        "e and the remaining states; dashed lines show patient-equal means. Red and blue "
-        "denote values above and below the remaining states, respectively. Numbers give p"
-        "atients above the remaining states / evaluable patients and Benjamini–Hochberg F"
-        "DR across the nine state-wise exact two-sided sign-flip tests. All facets use th"
-        "e same 21 patient slots and y-axis. MCG3 is marked because its mean score direct"
-        "ion differs from the raw-count pseudobulk sensitivity analysis.\n\n**B.** Two-bloc"
-        "k patient-balanced heatmap across the same fixed state order. The upper block sh"
-        "ows relative expression of the 19 measurable Miller-IM genes; values are patient"
-        "-equal mean log-normalized expression standardized within each gene across the n"
-        "ine states. All measurable Miller-IM genes were removed from the author marker s"
-        "ets before state assignment, so this block was held out from direct state-label "
-        "construction. The lower, visually reduced block shows the nine complete author m"
-        "arker-set scores, averaged within patient and assigned state and then standardiz"
-        "ed within marker set. These scores were used to create the state labels; their d"
-        "iagonal structure is expected by construction and is shown only as classificatio"
-        "n quality control, not as independent validation. Direct overlap between the fin"
-        "al label-defining marker sets and the measurable Miller-IM genes was zero. State"
-        " labels show the number of evaluable patients; dagger marks fewer than six patie"
-        "nts.\n\nGSE278456 is cross-sectional and is used only to localize the recurrence-a"
-        "ssociated program across myeloid states; recurrence evidence is provided separat"
-        "ely in Figure 1.\n"
-    ),
-    encoding= "utf-8",
-)
-
-# Keep the panel, source, PDF and PNG columns used by the report and figure assembler.
+# Keep the panel, source, PDF and PNG columns used by the figure assembler.
 manifest = write_root / "Figure2_panel_manifest.csv"
 panel_manifest_table = pd.DataFrame(records)
 
@@ -844,58 +805,10 @@ output_path = manifest
 panel_manifest_table.to_csv(output_path, index=False)
 if not output_path.is_file() or output_path.stat().st_size == 0:
     raise RuntimeError(f"Missing or empty output: {output_path.name}")
-report_marker_patient_table = marker_patient_table
-report_marker_summary_table = marker_summary_table
-report_audit_table = audit_table
-report_panel_table = pd.DataFrame(records)
-report_preview = preview
-report_grayscale = grayscale
-
-# Write the existing result report from the marker reconstruction and panel manifest.
-report_path = write_root / "FINAL_RESULT.md"
-report_path.write_text(
-    (
-        "# Step 50 Figure 2 candidate panels\n\n"
-        "- 2A shows patient-level waterfalls for nine states, with 21 patient slots and a shared y-axis scale.\n"
-        "- 2B upper block shows patient-equal `within_gene_z` for 19 held-out Miller-IM genes across nine states.\n"
-        "- 2B lower block shows the 9 × 9 author-marker score QC. All 17 marker sets compete for assignment "
-        "before selecting the nine myeloid states.\n- H5 comparison: "
-        f"{int(report_audit_table['n_qc_pass'].sum()):,}"
-        "/"
-        f"{int(report_audit_table['n_qc_pass'].sum()):,}"
-        " QC-passing cells exactly matched their Step 48 winning labels. Maximum difference in winning score: "
-        f"{report_audit_table['max_abs_winner_score_difference'].max():.3g}"
-        ".\n- Source rows: 108 waterfall contrasts, 171 Miller-IM gene-state values, "
-        f"{report_marker_patient_table.shape[0]}"
-        " patient marker scores and "
-        f"{report_marker_summary_table.shape[0]}"
-        " marker QC summary rows.\n- Preview: `"
-        f"{report_preview}"
-        "`. Grayscale preview: `"
-        f"{report_grayscale}"
-        "`.\n- GSE278456 localizes the program across states in cross-sectional samples. The lower block "
-        "shows quality control for the marker sets used to construct those state labels.\n\n## Panels\n\n"
-        f"{report_panel_table.to_markdown(index=False)}"
-        "\n"
-    ),
-    encoding= "utf-8",
-)
-
-# Write the existing output inventory consumed by the reproduction checks.
-inventory = []
-for path in sorted(list(fig_root.glob("*.pdf")) + list(fig_root.glob("*.png"))):
-    inventory.append({"path": str(path), "sha256": sha256(path)})
-inventory_table = pd.DataFrame(inventory)
-
-# Write the source table and confirm the current output file is nonempty.
-output_path = write_root / "Figure2_output_hashes.csv"
-inventory_table.to_csv(output_path, index=False)
-if not output_path.is_file() or output_path.stat().st_size == 0:
-    raise RuntimeError(f"Missing or empty output: {output_path.name}")
 print("Figure2 panels:", len(records))
 
-# Verify that the legend, report and both previews exist. Open each preview and check its dimensions.
-for output_path in [legend_path, report_path, preview, grayscale]:
+# Open each preview and check its dimensions.
+for output_path in (preview, grayscale):
     if not output_path.is_file() or output_path.stat().st_size == 0:
         raise RuntimeError(f"Missing or empty output: {output_path.name}")
 for preview_path in [preview, grayscale]:

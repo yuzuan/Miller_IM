@@ -96,7 +96,7 @@ check(
     "Welch_independent_t_df",
     abs(manual_t - unname(welch_test$statistic)) < 1e-12 && abs(manual_df - unname(welch_test$parameter)) < 1e-12
 )
-check("Welch_reviewer_t_df", abs(manual_t - 1.0541) < .0001 && abs(manual_df - 19.7739) < .0001)
+check("Welch_reference_t_df", abs(manual_t - 1.0541) < .0001 && abs(manual_df - 19.7739) < .0001)
 reference_table <- read.csv(file.path(step_dir, "GeoMx_subgroup_interaction.csv"))
 reference_table <- reference_table[reference_table$contrast == "Nivolumab_minus_Control_interaction", , drop = FALSE]
 reference_interval <- c(reference_table$ci_low, reference_table$ci_high)

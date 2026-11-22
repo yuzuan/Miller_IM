@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Verify the Miller systemic program and extend the five historical sets.
+"""Verify the six fixed gene sets against the original workbook definitions.
 
 Inputs: sources/Miller_2025_Supplementary_Table_2.xlsx (Systemic Inflammatory column),
-    step2_gene_sets.csv and step2_extended_specificity/locked_gene_sets_used.csv.
-Output: step2_locked_gene_sets.csv, in the original six-set order.
+    step2_gene_sets.csv and step2_locked_gene_sets.csv.
+Output: A count of the verified gene sets and rows.
 Run: python NOA_R1/scripts/02b_prepare_prespecified_sets.py after 02a.
 """
 
@@ -23,8 +23,7 @@ if not fieldnames:
     raise ValueError("Missing historical five-set table header")
 
 # Compare the prepared base sets with the archived rows, then check the extra systemic set from the workbook.
-archive_path = revision / "step2_extended_specificity" / "locked_gene_sets_used.csv"
-with archive_path.open(encoding="utf-8", newline="") as handle:
+with (revision / "step2_locked_gene_sets.csv").open(encoding="utf-8", newline="") as handle:
     archive_table = list(csv.DictReader(handle))
 archived_base_table = [row for row in archive_table if row["set_id"] != "Miller_systemic_top20"]
 if definition_table != archived_base_table:
@@ -47,16 +46,9 @@ if archived_members != list(enumerate(systemic_genes, 1)) or len(set(systemic_ge
 if not all(isinstance(gene, str) and gene for gene in systemic_genes):
     raise ValueError("Invalid gene symbol in the Miller systemic comparator")
 
-# Write base rows followed by the original systemic comparator rows and source metadata.
+# Verify the original set order, ranks and source metadata.
 definition_table_total = definition_table + systemic_table
-output_path = revision / "step2_locked_gene_sets.csv"
-with output_path.open("w", encoding="utf-8", newline="") as handle:
-    writer = csv.DictWriter(handle, fieldnames=fieldnames)
-    writer.writeheader()
-    writer.writerows(definition_table_total)
-with output_path.open(encoding="utf-8", newline="") as handle:
-    written_table = list(csv.DictReader(handle))
-if written_table != definition_table_total:
-    raise ValueError("Written six-set definitions differ from the verified rows")
+if definition_table_total != archive_table:
+    raise ValueError("Fixed six-set definitions differ from the verified rows")
 set_count = len({row["set_id"] for row in definition_table_total})
 print(f"Validated {set_count} gene sets and {len(definition_table_total)} definition rows.")

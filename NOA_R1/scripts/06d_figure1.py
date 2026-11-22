@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-# Purpose: generate the six October Figure 1 panels and assemble the manuscript figure preview.
+# Purpose: Generate the six Figure 1 panels and assemble the final figure.
 # Inputs: prepared Step 38, 45 and 46 tables under NOA_LEGACY_ROOT (cohort and threshold, GSEA, gene effects,
 # leading edges and leave-one-patient-out folds), the Step 46 panel F PDF and the bundled Step 1 camera results.
 # Outputs: _panels/51_figure1_final_reorganized/Figure1 contains the six A–F PDFs and PNGs, plus
 # Figure1_final_preview.pdf, Figure1_final_preview.png and Figure1_final_preview_grayscale.png.
-# _figure_build/51_figure1_final_reorganized/Figure1 contains Figure1_panel_manifest.csv, Figure1_legend.md,
-# FINAL_RESULT.md, and source_data/ with the panel source tables, Figure1_raw20_definition_source.csv and
-# Figure1_final_preview_layout.csv. Panel F retains its five existing leave-one-patient-out source CSVs.
+# _figure_build/51_figure1_final_reorganized/Figure1 contains the panel manifest, source tables,
+# Figure1_raw20_definition_source.csv and Figure1_final_preview_layout.csv.
+# Panel F retains the five leave-one-patient-out source tables.
 # Run: python3 NOA_R1/scripts/06d_figure1.py
 # Keep the Matplotlib/Pillow implementation and recorded October layouts for reproduction.
 
@@ -22,7 +22,6 @@ import pandas as pd
 from matplotlib.colors import TwoSlopeNorm
 from matplotlib.lines import Line2D
 from PIL import Image, ImageDraw, ImageOps
-from scipy.stats import spearmanr
 
 figure_style = importlib.import_module("00a_functions")
 apply_publication_style = figure_style.apply_publication_style
@@ -62,27 +61,6 @@ def formal_gsea_statistics() -> pd.DataFrame:
         raise ValueError(f"Unexpected formal pair counts in Step38 GSEA: {pair_counts}")
     formal_table = gsea_table.set_index("dataset").loc[datasets]
     return formal_table
-
-
-def legend_p(value: float) -> str:
-    """Return the legend's formatted nominal GSEA P value."""
-    if value < 1e-4:
-        annotation = "nominal *P* < 1 × 10⁻⁴"
-    else:
-        formatted = f"{value:.5f}".rstrip("0").rstrip(".")
-        annotation = f"nominal *P* = {formatted}"
-    return annotation
-
-
-def join_labels(labels: list[str]) -> str:
-    """Return the existing comma-separated legend format for labels."""
-    if not labels:
-        annotation = "No genes"
-    elif len(labels) == 1:
-        annotation = labels[0]
-    else:
-        annotation = f"{', '.join(labels[:-1])}, and {labels[-1]}"
-    return annotation
 
 
 def flatten_png(source: Path, destination: Path) -> None:
@@ -586,123 +564,8 @@ def make_preview(records: list[dict[str, str]], *, final_layout: bool = False) -
     return preview_paths
 
 
-def write_legend(raw20_path: Path) -> Path:
-    """Write the original figure caption using the rendered source tables."""
-    definition_table = pd.read_csv(raw20_path)
-    raw20 = definition_table.sort_values("raw20_order")["gene"].drop_duplicates().tolist()
-    raw20_text = ", ".join(raw20)
-    gsea_table = formal_gsea_statistics()
-
-    # Recalculate the descriptive correlation and confirm the source labels used in panel D.
-    rank_table = pd.read_csv(SOURCE_OUT / "Figure1D_shared_raw20_outliers_source.csv")
-    shared_count = int(rank_table["shared_leading_edge"].astype(bool).sum())
-    other_count = int((rank_table["miller_raw20"].astype(bool) & ~rank_table["shared_leading_edge"].astype(bool)).sum())
-    if (shared_count, other_count) != (7, 12):
-        raise ValueError(
-            f"Unexpected measured MG-Inflam20 partition in Figure1D: shared={shared_count}, other={other_count}"
-        )
-    rho, _ = spearmanr(
-        rank_table["rank_stat_GSE174554"],
-        rank_table["rank_stat_GSE274546"],
-    )
-    label_order = ["CCL4", "CH25H", "FOLR2", "PDK4", "SGK1"]
-    labelled = [
-        gene for gene in label_order if gene in set(rank_table.loc[rank_table["display_label"].ne(""), "display_label"])
-    ]
-    if labelled != label_order or "CCL3" in labelled:
-        raise ValueError(f"Unexpected Figure1D display labels: {labelled}")
-
-    gene_effect_table = pd.read_csv(SOURCE_OUT / "Figure1E_shared_leading_edge_gene_effects_source.csv")
-    n_gene_tests = len(gene_effect_table)
-    significant_gene_tests = int((gene_effect_table["FDR"] < 0.05).sum())
-    if (gene_effect_table["gene"].nunique(), n_gene_tests, significant_gene_tests) != (7, 14, 0):
-        raise ValueError(
-            "Unexpected Figure1E test audit: "
-            f"genes={gene_effect_table['gene'].nunique()}, tests={n_gene_tests}, FDR<0.05={significant_gene_tests}"
-        )
-
-    # Quantify the sensitivity from each patient omission using unrounded NES and P values.
-    lopo_table = pd.read_csv(SOURCE_OUT / "Figure1F_leave_one_patient_out_raw20_gsea.csv")
-    lopo_table = lopo_table.loc[lopo_table["run_type"].eq("Leave-one-patient-out")].copy()
-    lopo_counts = lopo_table.groupby("dataset").size().astype(int).to_dict()
-    expected_counts = gsea_table["n_pairs"].astype(int).to_dict()
-    if lopo_counts != expected_counts:
-        raise ValueError(f"Unexpected Figure1F LOPO counts: {lopo_counts}")
-    positive_counts = (
-        lopo_table.assign(positive=lopo_table["NES"] > 0).groupby("dataset")["positive"].sum().astype(int).to_dict()
-    )
-    significant_counts = (
-        lopo_table.assign(significant=lopo_table["nominal_P"] < 0.05)
-        .groupby("dataset")["significant"]
-        .sum()
-        .astype(int)
-        .to_dict()
-    )
-    max_p_row = lopo_table.loc[lopo_table["nominal_P"].idxmax()]
-    max_p = float(max_p_row["nominal_P"])
-    max_p_dataset = str(max_p_row["dataset"])
-
-    pair_174554 = int(gsea_table.loc["GSE174554", "n_pairs"])
-    pair_274546 = int(gsea_table.loc["GSE274546", "n_pairs"])
-    content = (
-        "# Figure 1 legend\n"
-        "\n"
-        "**Figure 1 | The 20-gene Miller-derived inflammatory microglial program (MG-Inflam20 program) is "
-        "enriched at recurrence in two independent paired GBM cohorts.**\n"
-        "\n"
-        "**A,** Study design. GSE174554 and GSE274546 were reconstructed independently, their pan-myeloid "
-        "compartments were reclustered separately, and recurrence was tested using paired patient-level analyses"
-        f" ({pair_174554} and {pair_274546} matched IDH-wild-type patients, respectively). **B-C,** Preranked "
-        "GSEA of the fixed MG-Inflam20 program using paired raw-count pseudobulk differential-expression ranks. "
-        "Positive normalized enrichment scores indicate recurrent enrichment. GSE174554: NES = "
-        f"{float(gsea_table.loc['GSE174554', 'NES']):.2f}, {legend_p(float(gsea_table.loc['GSE174554', 'pval']))}"
-        f"; GSE274546: NES = {float(gsea_table.loc['GSE274546', 'NES']):.2f}, "
-        f"{legend_p(float(gsea_table.loc['GSE274546', 'pval']))}. **D,** Genome-wide paired rank statistics in "
-        f"the two cohorts. Filled red symbols mark the {shared_count} measurable MG-Inflam20 genes present in "
-        f"both cohort-specific GSEA leading edges; open red symbols mark the other {other_count} measurable "
-        f"MG-Inflam20 genes. Only {join_labels(labelled)} are labelled to avoid over-annotation. Because "
-        "filled-symbol membership is defined by the intersection of the two leading edges, their joint "
-        "positive-quadrant position is descriptive and partly expected by construction; this panel is not an "
-        f"independent single-gene replication test. Genome-wide rank correlation was low (Spearman rₛ = {rho:.2f}"
-        ") and is provided here only as background context, not as the panel claim. **E,** "
-        f"Recurrent-versus-primary log₂ fold changes of the {shared_count} shared leading-edge genes. "
-        f"{significant_gene_tests}/{n_gene_tests} gene-by-cohort tests reached FDR < 0.05, supporting "
-        "interpretation at the program rather than single-gene level. **F,** Leave-one-patient-out sensitivity "
-        "analysis of the paired pseudobulk MG-Inflam20 GSEA. Normalized enrichment scores remained positive in "
-        f"{positive_counts['GSE174554']}/{lopo_counts['GSE174554']} and {positive_counts['GSE274546']}/"
-        f"{lopo_counts['GSE274546']} omissions; nominal *P* remained < 0.05 in {significant_counts['GSE174554']}/"
-        f"{lopo_counts['GSE174554']} and {significant_counts['GSE274546']}/{lopo_counts['GSE274546']} omissions, "
-        f"respectively. The maximum nominal *P* was {max_p:.4g} in {max_p_dataset}. Diamonds show full-data "
-        "estimates; filled circles denote nominal *P* < 0.05.\n"
-        "\n"
-        "The fixed MG-Inflam20 gene set was defined a priori from Miller et al. Supplementary Table 2: "
-        f"{raw20_text}. Nineteen of 20 genes were measurable in each cohort; AC253572.2 was not measured. "
-        "Statistical unit: patient. Panel D is a descriptive cross-cohort background view; panels B, C, and F "
-        "provide the formal program-level recurrence evidence.\n"
-    )
-    path = WRITE_ROOT / "Figure1_legend.md"
-    path.write_text(content, encoding="utf-8")
-    return path
-
-
-def write_result(manifest_path: Path, legend_path: Path, raw20_path: Path) -> None:
-    """Write the original Figure 1 panel and file mapping. Returns nothing."""
-    content = f"""# Figure 1 final reorganization
-
-- A shows the design and B–C show independent MG-Inflam20 GSEA.
-- D shows the all-gene background and shared leading-edge genes. E shows effects for the shared genes.
-- F shows leave-one-patient-out stability.
-- D labels CCL4, CH25H, FOLR2, PDK4, and SGK1. See the legend for the genome-wide correlation.
-- The review preview adds the A–F labels to the six panel files.
-- Manifest: `{manifest_path}`
-- Legend: `{legend_path}`
-- Internal raw20 version definition: `{raw20_path}`
-"""
-    (WRITE_ROOT / "FINAL_RESULT.md").write_text(content, encoding="utf-8")
-
-
 def main(*, final_layout: bool = False) -> None:
-    """Render panels A–F and write their source manifest and captions. Returns nothing."""
+    """Render panels A–F and write the source manifest. Returns nothing."""
     apply_publication_style()
     np.random.seed(20260714)
     SOURCE_OUT.mkdir(parents=True, exist_ok=True)
@@ -720,6 +583,8 @@ def main(*, final_layout: bool = False) -> None:
         raise ValueError("The Figure 1 panel filenames must be unique")
 
     raw20_path = build_raw20_definition()
+    if not raw20_path.is_file() or raw20_path.stat().st_size == 0:
+        raise ValueError("The Figure 1 program definition is missing or empty")
     preview_pdf, preview_png, preview_gray, preview_layout = make_preview(records, final_layout=final_layout)
     manifest_path = WRITE_ROOT / "Figure1_panel_manifest.csv"
     manifest_table = pd.DataFrame(records)
@@ -728,8 +593,40 @@ def main(*, final_layout: bool = False) -> None:
     manifest_table["preview_grayscale"] = str(preview_gray)
     manifest_table["preview_layout"] = str(preview_layout)
     manifest_table.to_csv(manifest_path, index=False)
-    legend_path = write_legend(raw20_path)
-    write_result(manifest_path, legend_path, raw20_path)
+
+    # Verify the plotted target genes, shared effect tests and patient omissions.
+    rank_table = pd.read_csv(SOURCE_OUT / "Figure1D_shared_raw20_outliers_source.csv")
+    shared_count = int(rank_table["shared_leading_edge"].astype(bool).sum())
+    other_count = int((rank_table["miller_raw20"].astype(bool) & ~rank_table["shared_leading_edge"].astype(bool)).sum())
+    if (shared_count, other_count) != (7, 12):
+        raise ValueError(
+            f"Unexpected measured MG-Inflam20 partition in Figure1D: shared={shared_count}, other={other_count}"
+        )
+
+    label_order = ["CCL4", "CH25H", "FOLR2", "PDK4", "SGK1"]
+    labelled = [
+        gene for gene in label_order if gene in set(rank_table.loc[rank_table["display_label"].ne(""), "display_label"])
+    ]
+    if labelled != label_order or "CCL3" in labelled:
+        raise ValueError(f"Unexpected Figure1D display labels: {labelled}")
+
+    gene_effect_table = pd.read_csv(SOURCE_OUT / "Figure1E_shared_leading_edge_gene_effects_source.csv")
+    n_gene_tests = len(gene_effect_table)
+    significant_gene_tests = int((gene_effect_table["FDR"] < 0.05).sum())
+    if (gene_effect_table["gene"].nunique(), n_gene_tests, significant_gene_tests) != (7, 14, 0):
+        raise ValueError(
+            "Unexpected Figure1E test audit: "
+            f"genes={gene_effect_table['gene'].nunique()}, tests={n_gene_tests}, FDR<0.05={significant_gene_tests}"
+        )
+
+    lopo_table = pd.read_csv(SOURCE_OUT / "Figure1F_leave_one_patient_out_raw20_gsea.csv")
+    lopo_table = lopo_table.loc[lopo_table["run_type"].eq("Leave-one-patient-out")].copy()
+    lopo_counts = lopo_table.groupby("dataset").size().astype(int).to_dict()
+    gsea_table = formal_gsea_statistics()
+    expected_counts = gsea_table["n_pairs"].astype(int).to_dict()
+    if lopo_counts != expected_counts:
+        raise ValueError(f"Unexpected Figure1F LOPO counts: {lopo_counts}")
+
     print(f"Figure 1 panels: {len(records)}")
 
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Purpose: Draw six measurable genes, a fixed grayscale H&E background, and four Figure 3 spatial effects.
-# Inputs: Use the Step 53 helpers for paired GeoMx data, Step 41 spatial tables, and the two Visium images.
-# Outputs: source_data, Figure3_panel_manifest.csv, Figure3_legend.md, and FINAL_RESULT.md under
+# Inputs: Paired GeoMx data, Step 41 spatial tables, and the two Visium images loaded by 07c.
+# Outputs: source tables and Figure3_panel_manifest.csv under
 # write/55_figure3_visual_polish/Figure3, with panels A–D and Figure3_visual_polish_preview under figures.
 # Run python scripts/07d_figure3.py from the repository root.
 # The Python workflow uses pandas, NumPy, Matplotlib, and Pillow for the released calculations and figures.
@@ -36,12 +36,12 @@ panel_record = figure_style.panel_record
 paste_contained = figure_style.paste_contained
 save_panel = figure_style.save_panel
 
-# Import the Step 53 definitions. The base script's main workflow runs only from its own entry point.
+# Load the shared GeoMx and Visium functions used by this figure.
 root = Path(__file__).resolve().parents[1]
 base_script = root / "scripts/07c_spatial_and_paired_expression.py"
 spec = importlib.util.spec_from_file_location("step53_figure3", base_script)
 if spec is None or spec.loader is None:
-    raise RuntimeError(f"Cannot load the Step 53 script: {base_script}")
+    raise RuntimeError(f"Cannot load the shared Figure 3 functions: {base_script}")
 base = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(base)
 
@@ -171,7 +171,7 @@ records.append(
 
 # In the shared panel C function, select the original Step 55 grayscale conversion and use the three existing score
 # scales.
-records.append(base.panel_c(source_out, figure_out, "Step55 recurrent GBM Figure 3 visual polish", True))
+records.append(base.panel_c(source_out, figure_out, "Step55 recurrent GBM Figure 3 visual polish"))
 
 # Draw the four existing partial correlations against zero on the original 0–0.5 scale.
 
@@ -297,46 +297,9 @@ manifest_table["preview_layout"] = str(source_path)
 manifest_path = write_root / "Figure3_panel_manifest.csv"
 manifest_table.to_csv(manifest_path, index=False)
 
-# Write the archived figure legend and the standalone summary.
-
-content = (
-    "# Figure 3 legend\n\n**Figure 3 | Paired myeloid-enriched tissue support and patient-matched "
-    "spatial context of the Miller-IM program.**\n\n**A,** Paired IBA1-positive GeoMx Miller-IM scores"
-    " in 22 IDH-wild-type patients; 16/22 were higher at recurrence (mean change 0.273, 95% CI "
-    "0.094–0.452; adjusted sign-flip FDR 0.00721). **B,** Changes for seven shared leading-edge "
-    "genes; six were measurable and *CCL4* was absent. **C,** Visium maps of Miller-IM, MDSC-like, "
-    "and MES-like scores in two untreated primary IDH-wild-type tumors. Both cases, GBM030 and "
-    "GBM049, were also represented in the single-cell atlas used for Figure 2. **D,** "
-    "Myeloid-adjusted partial Spearman correlations were positive for MDSC-like (*r*<sub>s</sub> "
-    "0.399/0.355) and MES-like scores (0.280/0.270). Panels C,D provide patient-matched, cross-modal"
-    " context rather than independent patient replication and are descriptive because spatial "
-    "dependence was not modeled. State identity and multicellular niche context are distinct "
-    "analytical levels; these maps do not assign MDSC identity to cells expressing the Miller-IM "
-    "program.\n"
-)
-legend_path = write_root / "Figure3_legend.md"
-legend_path.write_text(content, encoding="utf-8")
-
-
-content = (
-    "# Figure 3 visual polish\n\n- A. Paired GeoMx dumbbell plot for 22 patients.\n- "
-    "B. Six measurable genes are shown. The source table and legend retain all seven prespecified genes and record that"
-    " CCL4 was unmeasured.\n- C. Both H&E images use the same low-contrast grayscale conversion. Each of the three "
-    "scores uses a common scale across sections.\n- "
-    "D. Four effect estimates are shown with a zero reference and a 0–0.5 x-axis.\n- Manifest `"
-    f"{manifest_path}"
-    "`\n- Legend `"
-    f"{legend_path}"
-    "`\n"
-)
-(write_root / "FINAL_RESULT.md").write_text(content, encoding="utf-8")
-
-
 # Verify the output files, preview dimensions, and manifest shape. Stop if an output is missing or empty.
 output_paths = [
     manifest_path,
-    legend_path,
-    write_root / "FINAL_RESULT.md",
     pdf_path,
     png_path,
     preview_gray_path,

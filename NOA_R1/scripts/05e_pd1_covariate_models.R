@@ -72,9 +72,9 @@ for (dataset in c("GSE121810", "GSE154795")) {
     differences <- c(as.numeric(interval) - legacy_interval, p_value - legacy_raw_table$p_value)
     record_check(paste(dataset, "original_raw_ci_p_reproduced"), max(abs(differences)) < 1e-12)
 
-    # The review response records these rounded GSE154795 values.
+    # Verify the rounded raw-score estimate and P value for GSE154795.
     if (dataset == "GSE154795") {
-        record_check("reviewer_raw_0.41943_p0.17015", abs(effect - .41943) < .00001 && abs(p_value - .17015) < .00001)
+        record_check("gse154795_rounded_raw_model", abs(effect - .41943) < .00001 && abs(p_value - .17015) < .00001)
     }
     raw_model_tables[[dataset]] <- data.frame(
         dataset     = dataset,

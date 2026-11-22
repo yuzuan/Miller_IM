@@ -7,7 +7,7 @@
 # (.pdf/.png), Figure2_two_panel_preview.png and Figure2_two_panel_preview_grayscale.png. The matching
 # _figure_build/50_figure2_two_panel_final/Figure2 directory holds Figure2_panel_manifest.csv and source_data/
 # with Figure2_state_patient_waterfall_source.csv and Figure2_raw20_marker_double_heatmap_{raw20,marker_qc}_source.csv.
-# Recompute mode also writes Figure2_legend.md, FINAL_RESULT.md and these source_data/ tables
+# Recompute mode also writes these source_data/ tables
 # GSE278456_patient_marker_set_scores_source.csv, GSE278456_marker_set_assignment_qc_source.csv and
 # GSE278456_step48_assignment_reproduction_source.csv.
 # Run: python3 NOA_R1/scripts/07_figure2.py [--plot-only | --recompute-marker-qc]
@@ -579,8 +579,8 @@ def make_double_heatmap(
     return panel_record
 
 
-def make_preview(records: list[dict[str, str]]) -> tuple[Path, Path]:
-    """Build the two review images from the existing PDF-derived panel PNGs."""
+def make_preview(records: list[dict[str, str]]) -> None:
+    """Build color and grayscale composites from PDF-derived panels. Returns nothing."""
     target_width = 1800
     resized: list[Image.Image] = []
     for record in records:
@@ -619,44 +619,6 @@ def make_preview(records: list[dict[str, str]]) -> tuple[Path, Path]:
             if image.size != canvas.size:
                 raise ValueError(f"Unexpected review image size: {image_path.name}")
             image.verify()
-    previews = (preview, grayscale)
-    return previews
-
-
-def write_legend() -> Path:
-    """Write the frozen October Figure 2 legend and return its path."""
-    path = WRITE_ROOT / "Figure2_legend.md"
-    path.write_text(
-        "# Figure 2 | The MG-Inflam20 program preferentially maps to MCG1/MCG2-like states in an independent "
-        "cross-sectional myeloid atlas\n"
-        "\n"
-        "**A.** Patient-level state-versus-rest waterfall plots in the 21 IDH-wild-type primary GBM samples "
-        "of GSE278456. Each bar is one patient with at least 30 cells in the indicated author-marker-derived "
-        "state and at least 30 cells in the remaining prespecified myeloid states. Bars show the difference "
-        "in control-adjusted MG-Inflam20 score between that state and the remaining states; dashed lines show "
-        "patient-equal means. Red and blue denote values above and below the remaining states, respectively. "
-        "Numbers give patients above the remaining states / evaluable patients and Benjamini–Hochberg FDR "
-        "across the nine state-wise exact two-sided sign-flip tests. All facets use the same 21 patient slots "
-        "and y-axis. MCG3 is marked because its mean score direction differs from the raw-count pseudobulk "
-        "sensitivity analysis.\n"
-        "\n"
-        "**B.** Two-block patient-balanced heatmap across the same fixed state order. The upper block shows "
-        "relative expression of the 19 measurable MG-Inflam20 genes; values are patient-equal mean "
-        "log-normalized expression standardized within each gene across the nine states. All measurable "
-        "MG-Inflam20 genes were removed from the author marker sets before state assignment, so this block "
-        "was held out from direct state-label construction. The lower, visually reduced block shows the nine "
-        "complete author marker-set scores, averaged within patient and assigned state and then standardized "
-        "within marker set. These scores were used to create the state labels; their diagonal structure is "
-        "expected by construction and is shown only as classification quality control, not as independent "
-        "validation. Direct overlap between the final label-defining marker sets and the measurable "
-        "MG-Inflam20 genes was zero. State labels show the number of evaluable patients; dagger marks fewer "
-        "than six patients.\n"
-        "\n"
-        "GSE278456 is cross-sectional and is used only to localize the recurrence-associated program across "
-        "myeloid states; recurrence evidence is provided separately in Figure 1.\n",
-        encoding="utf-8",
-    )
-    return path
 
 
 def main(*, recompute_marker_qc: bool = False, final_layout: bool = False) -> None:
@@ -692,34 +654,18 @@ def main(*, recompute_marker_qc: bool = False, final_layout: bool = False) -> No
         write_source(marker_patient_table, "GSE278456_patient_marker_set_scores_source.csv")
         write_source(marker_summary_table, "GSE278456_marker_set_assignment_qc_source.csv")
         write_source(audit_table, "GSE278456_step48_assignment_reproduction_source.csv")
-        write_legend()
 
     records = [
         make_patient_waterfall(waterfall_table, final_layout=final_layout),
         make_double_heatmap(gene_summary_table, marker_summary_table, state_summary_table, final_layout=final_layout),
     ]
-    preview, grayscale = make_preview(records)
+    make_preview(records)
     manifest_table = pd.DataFrame(records)
     manifest_path = WRITE_ROOT / "Figure2_panel_manifest.csv"
     manifest_table.to_csv(manifest_path, index=False)
     if not manifest_path.stat().st_size:
         raise ValueError("The Figure 2 panel manifest is empty")
 
-    # Summarize the recalculation using observed counts and the original report path.
-    if recompute_marker_qc:
-        matched_cells = int(audit_table["n_winner_exact_match"].sum())
-        qc_cells = int(audit_table["n_qc_pass"].sum())
-        max_score_difference = audit_table["max_abs_winner_score_difference"].max()
-        report = (
-            "# Figure 2 marker-score reconstruction\n\n"
-            f"- Exact winner matches: {matched_cells:,}/{qc_cells:,}. "
-            f"Maximum absolute score difference: {max_score_difference:.3g}.\n"
-            f"- Source rows: {len(waterfall_table)} waterfall, {len(gene_summary_table)} held-out genes, "
-            f"{len(marker_patient_table)} patient marker scores, and {len(marker_summary_table)} marker QC means.\n"
-            f"- Review images: `{preview.name}` and `{grayscale.name}`.\n\n"
-            f"{manifest_table.to_markdown(index=False)}\n"
-        )
-        (WRITE_ROOT / "FINAL_RESULT.md").write_text(report, encoding="utf-8")
     print(f"Figure 2 panels: {len(records)}")
 
 

@@ -4,11 +4,9 @@
 Inputs: Panel and source-data inputs of 06d, 07, 08c, 08d and 08e.
     Figure 3C uses the archived Step 55 tissue raster and spot table under NOA_LEGACY_ROOT
     and the registered-array source files under figure3_scale_calibration/sources.
-    Comparison sheets use subssion/Figures/QC/Upload_Ready_Previews/Figure{1–5}.png under NOA_LEGACY_ROOT.
-Outputs: figures_R1/Figure{1–5}_R1.{png,tiff}, figures_R1/_compare_old_vs_new_Fig{1–5}.png,
-    panel builds under figures_R1/_font_build/fig{1–5}, and
+Outputs: figures_R1/Figure{1–5}_R1.{png,tiff}, panel builds under figures_R1/_font_build/fig{1–5}, and
     figure3_scale_calibration/Figure3C_scale_calibration.csv when building Figure 3.
-Run: python NOA_R1/scripts/09b_export_final_figures.py [--figures 1 2 3 4 5] [--skip-comparisons]
+Run: python NOA_R1/scripts/09b_export_final_figures.py [--figures 1 2 3 4 5]
 """
 
 import argparse
@@ -26,7 +24,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from matplotlib.figure import Figure
 from matplotlib.text import Text
-from PIL import Image, ImageDraw, ImageOps
+from PIL import Image, ImageDraw
 
 
 figure_tools = importlib.import_module("00a_functions")
@@ -161,8 +159,8 @@ def build_figure_preview(number, output_dir, project_root) -> Path:
     return preview_path
 
 
-def export_figure(number, preview_path, output_dir, comparison_path) -> None:
-    """Resize the assembled panel preview to 170 mm and write the submission raster formats."""
+def export_figure(number, preview_path, output_dir) -> None:
+    """Write the assembled figure as 170-mm-wide PNG and TIFF files. Returns nothing."""
     width = round(figure_tools.mm(170) * 600)
     with Image.open(preview_path) as preview:
         image = preview.convert("RGB")
@@ -178,27 +176,7 @@ def export_figure(number, preview_path, output_dir, comparison_path) -> None:
     image.save(png_path, dpi=(600, 600), optimize=True)
     image.save(tiff_path, dpi=(600, 600), compression="tiff_lzw")
 
-    # Retain the comparison sheet's original image sizes, labels and positions.
-    if comparison_path is not None:
-        with Image.open(comparison_path) as original:
-            original_image = original.convert("RGB")
-        before = ImageOps.contain(original_image, (1800, 2350), Image.Resampling.LANCZOS)
-        after = ImageOps.contain(image, (1800, 2350), Image.Resampling.LANCZOS)
-        canvas = Image.new("RGB", (3720, max(before.height, after.height) + 130), "white")
-        drawer = ImageDraw.Draw(canvas)
-        font = figure_tools.image_font(48, bold=True)
-        drawer.text((30, 22), "Original submission", fill="#222222", font=font)
-        drawer.text((1890, 22), "R1 larger type", fill="#222222", font=font)
-        canvas.paste(before, ((1800 - before.width) // 2, 105))
-        canvas.paste(after, (1860 + (1800 - after.width) // 2, 105))
-        preview_comparison_path = output_dir / f"_compare_old_vs_new_Fig{number}.png"
-        canvas.save(preview_comparison_path, optimize=True)
-        with Image.open(preview_comparison_path) as saved:
-            if saved.size != canvas.size:
-                raise ValueError(f"Unexpected Figure {number} comparison dimensions")
-            saved.verify()
-
-    # Verify both submission rasters before reporting the actual dimensions.
+    # Verify both figure files before reporting the actual dimensions.
     for output_path in (png_path, tiff_path):
         with Image.open(output_path) as saved:
             if saved.size != image.size or saved.mode != "RGB":
@@ -208,30 +186,15 @@ def export_figure(number, preview_path, output_dir, comparison_path) -> None:
 
 
 def main() -> None:
-    """Build the selected figures and restore the original save method on exit."""
+    """Build the selected figures and restore the original save method on exit. Returns nothing."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--figures", nargs="+", type=int, choices=range(1, 6), default=list(range(1, 6)))
-    parser.add_argument(
-        "--skip-comparisons",
-        action = "store_true",
-        help   = "Build final figures without the archived original-submission comparison previews.",
-    )
     args = parser.parse_args()
 
     # The actual panel builds write only under the revision root.
     revision_dir = Path(__file__).resolve().parents[1]
     project_root = figure_tools.legacy_root(revision_dir)
     output_dir = revision_dir / "figures_R1"
-
-    # Check the original review previews before starting any requested comparison export.
-    comparison_paths = {}
-    if not args.skip_comparisons:
-        original_dir = project_root / "subssion/Figures/QC/Upload_Ready_Previews"
-        for number in args.figures:
-            comparison_path = original_dir / f"Figure{number}.png"
-            if not comparison_path.is_file():
-                raise FileNotFoundError(f"Missing original preview at {comparison_path}. Use --skip-comparisons.")
-            comparison_paths[number] = comparison_path
 
     # Use the original print-size factors only for the matching panel stems.
     panel_scales = {
@@ -251,14 +214,6 @@ def main() -> None:
             if stem.startswith(prefix):
                 factor = scale
                 break
-
-        # Apply the final label if the panel contains the older model title.
-        if stem.startswith("Figure5C"):
-            labels = [
-                item for item in figure.findobj(match=Text) if item.get_text() == "Myeloid-proxy-adjusted model"
-            ]
-            for item in labels:
-                item.set_text("Adjusted model")
 
         # Draw once to materialize tick labels. Scale text below 7.8 pt only once per figure.
         if factor != 1 and not getattr(figure, "_r1b_scaled", False):
@@ -284,7 +239,7 @@ def main() -> None:
     try:
         for number in args.figures:
             preview_path = build_figure_preview(number, output_dir, project_root)
-            export_figure(number, preview_path, output_dir, comparison_paths.get(number))
+            export_figure(number, preview_path, output_dir)
     finally:
         Figure.savefig = original_savefig
 

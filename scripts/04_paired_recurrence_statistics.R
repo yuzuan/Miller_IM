@@ -3,7 +3,7 @@
 # Inputs: write/34_gse174554_raw_independent_discovery and write/36_gse274546_raw_independent_reannotation
 # 03_myeloid/patient_condition_pseudobulk_* files, config/miller_im_gene_set.tsv and the IDH crosswalk.
 # Outputs in the requested directory: fixed_program_provenance.csv, GSE174554_IDH_filter_audit.csv,
-# independent_*.csv and FINAL_INDEPENDENT_RECALCULATION.md, with their original filenames and fields.
+# and the independent model and score tables (independent_*.csv).
 # Run with Rscript scripts/04_paired_recurrence_statistics.R <output_dir>.
 # Use the original R/edgeR/fgsea workflow, 20/50-cell thresholds, seeds and serial BiocParallel.
 
@@ -493,65 +493,6 @@ write.csv(
 )
 
 main_targeted_table <- targeted_results_table_total[targeted_results_table_total$threshold == 20, ]
-main_raw_table <- main_targeted_table[main_targeted_table$pathway == "Miller_Microglial_Inflammatory_raw_top20", ]
-strict_raw <- nrow(main_raw_table) == 2 && all(main_raw_table$NES > 0) && all(main_raw_table$pval < 0.05)
-
-idh_rule_text <- paste0(
-    "- GSE174554 is restricted to 17 IDH-wild-type pairs using a GEO-to-Wang Supplementary Table 1 ",
-    "sample crosswalk; the IDH-mutant pair GSE174554_pair33 is excluded before testing."
-)
-summary_lines <- c(
-    "# Independently reconstructed cohort Mg-inflammatory recalculation",
-    "",
-    "## Input rule",
-    "",
-    "- GSE174554 uses only the Step34 independently reconstructed and annotated clean-myeloid raw-count pseudobulk.",
-    idh_rule_text,
-    "- GSE274546 uses only the Step36 independently reconstructed and annotated clean-myeloid raw-count pseudobulk.",
-    "- No merged GSE174554/GSE274546 object contributes cells, annotations or counts to these tests.",
-    "",
-    "## Main paired result at >=20 clean myeloid cells per endpoint",
-    "",
-    "| dataset | signature | pairs | NES | nominal p |",
-    "|---|---|---:|---:|---:|"
-)
-for (i in seq_len(nrow(main_targeted_table))) {
-    result_table <- main_targeted_table[i, ]
-    summary_row <- sprintf(
-        "| %s | %s | %d | %.3f | %.4g |",
-        result_table$dataset, result_table$pathway, result_table$n_pairs, result_table$NES, result_table$pval
-    )
-    summary_lines <- c(summary_lines, summary_row)
-}
-positive_rule_text <- paste0(
-    "- The prespecified Miller top20 program is positive with nominal P<0.05 in both independent cohorts: ",
-    strict_raw,
-    "."
-)
-entry_rule_text <- paste0(
-    "- Exact NES, pair counts and leading-edge genes are allowed to change because the independently ",
-    "reconstructed clean-myeloid entries are different."
-)
-summary_lines <- c(
-    summary_lines,
-    "",
-    "## Decision",
-    "",
-    positive_rule_text,
-    entry_rule_text,
-    "- A positive answer means the biological conclusion is reproduced, not that every numerical value is identical.",
-    "",
-    "## Statistical method",
-    "",
-    "- edgeR paired raw-count pseudobulk model: ~ patient + condition.",
-    "- GSEA ranking: sign(logFC) x sqrt(F); fgseaMultilevel seed 42; serial execution.",
-    paste0(
-        "- The >=20-cell threshold is the formal main analysis. The >=50-cell GSE174554 result has fewer ",
-        "than 10 pairs and is descriptive."
-    )
-)
-writeLines(summary_lines, file.path(output_dir, "FINAL_INDEPENDENT_RECALCULATION.md"), useBytes = TRUE)
-
 cat("cohorts=", nrow(main_targeted_table), " paired_units=", sum(pair_audit_table_total$n_units), "\n", sep = "")
 
 # Verify the expected output files from this run.
@@ -559,7 +500,7 @@ output_names <- c(
     "fixed_program_provenance.csv", "GSE174554_IDH_filter_audit.csv", "independent_input_pair_audit.csv",
     "independent_fixed_program_paired_scores.csv", "independent_fixed_program_scores_by_unit.csv",
     "independent_paired_edger_all_genes.csv", "independent_fixed_program_targeted_gsea.csv",
-    "independent_fixed_program_gene_direction.csv", "FINAL_INDEPENDENT_RECALCULATION.md"
+    "independent_fixed_program_gene_direction.csv"
 )
 output_paths <- file.path(output_dir, output_names)
 stopifnot(all(file.exists(output_paths)), all(file.info(output_paths)$size > 0))

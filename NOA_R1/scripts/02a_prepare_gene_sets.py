@@ -2,7 +2,7 @@
 """Verify the historical five gene sets against the original published workbooks.
 
 Inputs: sources/Miller_2025_Supplementary_Table_2.xlsx, the Abdelfattah Supplementary Data 9 workbook,
-    sources/Sankowski_2019_Supplementary_Tables.xlsx and step2_extended_specificity/locked_gene_sets_used.csv.
+    sources/Sankowski_2019_Supplementary_Tables.xlsx and step2_locked_gene_sets.csv.
     Use NOA_ABDEL_WORKBOOK for the downloaded Abdelfattah workbook. The original Miller workbook is also
     supported in literature_markers/ under NOA_LEGACY_ROOT or its parent.
 Outputs: step2_gene_sets.csv and the original Miller and Abdelfattah workbook copies under sources/.
@@ -60,7 +60,7 @@ sankowski_genes = sankowski_table.loc[sankowski_table["Cluster"] == 1, "GENEID"]
 if "CCL3L3|CCL3" not in sankowski_genes:
     raise ValueError("Sankowski Cluster 1 is missing the original compound feature")
 
-# Match the exact archived symbol and rank sequence. These CSV rows replace the private ranked catalog check.
+# Check the exact symbol and rank sequence against the fixed gene-set table.
 set_genes = {
     "target_top20": target_genes[:20],
     "target_top50": target_genes[:50],
@@ -68,7 +68,7 @@ set_genes = {
     "Abdelfattah_iMic_top50": imic_genes,
     "Sankowski_C1": sankowski_genes,
 }
-archive_path = revision / "step2_extended_specificity" / "locked_gene_sets_used.csv"
+archive_path = revision / "step2_locked_gene_sets.csv"
 with archive_path.open(encoding="utf-8", newline="") as handle:
     reader = csv.DictReader(handle)
     fieldnames = reader.fieldnames

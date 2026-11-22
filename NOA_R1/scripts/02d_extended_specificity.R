@@ -1,10 +1,10 @@
 #!/usr/bin/env Rscript
 # Purpose: Reproduce the six-set paired CAMERA, program scores, and target-excluding random gene-set tests.
 # Inputs: provenance/step1_input_manifest.csv (counts_path, expected_pairs and gene totals);
-#   step2_locked_gene_sets.csv or the archived step2_extended_specificity/locked_gene_sets_used.csv (set_id, gene);
+#   step2_locked_gene_sets.csv (set_id, gene);
 #   step1_primary_recurrence/<dataset>_paired_voom.rds, camera_results.csv, sample_audit.csv, and legacy Step 38
 #   independent_paired_edger_all_genes.csv (gene, logFC, F, PValue) and independent_fixed_program_targeted_gsea.csv.
-# Outputs under step2_extended_specificity/: subitem_status.csv, locked_gene_sets_used.csv, camera_results.csv,
+# Outputs under step2_extended_specificity/: camera_results.csv,
 #   gene_coverage.csv, patient_scores.csv, patient_effects.csv, random_summary.csv, validation_checks.csv,
 #   sessionInfo.txt, and <dataset>_background.csv, _expression_bins.csv and _<scheme>_random_sets.csv.
 # Run: Rscript NOA_R1/scripts/02d_extended_specificity.R NOA_R1 after 01a.
@@ -22,7 +22,6 @@ if (length(args) != 1L) stop("Usage: 02d_extended_specificity.R <revision_dir>")
 revision <- normalizePath(args[[1]], mustWork = TRUE)
 output_dir <- file.path(revision, "step2_extended_specificity")
 definition_path <- file.path(revision, "step2_locked_gene_sets.csv")
-if (!file.exists(definition_path)) definition_path <- file.path(output_dir, "locked_gene_sets_used.csv")
 definition_table <- read.csv(definition_path, stringsAsFactors = FALSE)
 set_ids <- unique(definition_table$set_id)
 dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
@@ -47,15 +46,6 @@ for (set_id in set_ids) {
     valid_sets <- valid_sets && !anyDuplicated(genes) && !anyNA(genes) && all(nzchar(genes))
 }
 check("both", "all_sets_unique", valid_sets)
-
-# Record the archived six-set status. Hallmark was completed in the separate seven-set analysis (02e).
-status_table <- data.frame(
-    subitem = "MSigDB_HALLMARK_INFLAMMATORY_RESPONSE",
-    status  = "stopped",
-    reason  = "msigdbr human 2025.1 cache absent; no download allowed"
-)
-write.csv(status_table, file.path(output_dir, "subitem_status.csv"), row.names = FALSE, na = "")
-write.csv(definition_table, file.path(output_dir, "locked_gene_sets_used.csv"), row.names = FALSE, na = "")
 
 # The original tested genes and ES come from Step 38 at the 20-cell threshold.
 project <- normalizePath(Sys.getenv("NOA_LEGACY_ROOT", unset = dirname(revision)), mustWork = TRUE)

@@ -2,7 +2,7 @@
 # Purpose  Draw the Figure 5 exposure timelines, rank enrichment, scores and adjusted effects.
 # Inputs   EdgeR, fgsea, camera, coverage and model tables under write/41_mg_inflammatory_sci_rebuild/Figure5,
 #          and GSE154795_myeloid_sample_audit.csv under Step 56 frozen_inputs.
-# Outputs  Source tables, Figure5_panel_manifest.csv, Figure5_legend.md and FINAL_RESULT.md under
+# Outputs  Source tables and Figure5_panel_manifest.csv under
 #          write/56_figure5_pd1_rebuild/Figure5. The figures tree contains the three panels and previews.
 # Run      python scripts/09b_figure5.py from the repository root.
 # Use the existing Python libraries to preserve ordering, random draws and the canvas.
@@ -630,66 +630,9 @@ manifest_table["preview_layout"] = str(source_path)
 manifest_path = write_root / "Figure5_panel_manifest.csv"
 manifest_table.to_csv(manifest_path, index=False)
 
-# Retain the exact Figure 5 legend.
-
-content = (
-    "# Figure 5 legend\n\n**Figure 5 | Anti-PD-1 exposure is associated with a coordinated shift of "
-    "the Miller-IM program.**\n\n**A,** Sampling and exposure designs. In GSE121810, tumors from 14 "
-    "patients were resected after preoperative pembrolizumab exposure, whereas tumors from 15 "
-    "adjuvant-only patients were collected before pembrolizumab began. In GSE154795, strict "
-    "IDH-wild-type patient-level myeloid pseudobulks compared 13 anti-PD-1-exposed recurrent tumors "
-    "with eight recurrent tumors without neoadjuvant anti-PD-1 exposure. The diagram distinguishes "
-    "exposure at resection from treatment initiated only after tissue collection. **B,** Rank-based "
-    "enrichment of the prespecified Miller-IM program. Nineteen of 20 genes were measurable in each "
-    "cohort; AC253572.2 was not measured. In GSE121810, the Miller-IM program was enriched toward "
-    "the preoperative-exposure end of the transcriptome-wide ranking (NES = 1.900; nominal fgsea *P*"
-    " = 6.35 × 10^-5), with a complementary competitive test agreeing in direction (camera, Up; "
-    "nominal *P* = 2.81 × 10^-5). In the strict IDH-wild-type GSE154795 myeloid pseudobulk analysis,"
-    " the program was likewise enriched toward anti-PD-1 exposure (NES = 1.751; nominal fgsea *P* = "
-    "2.91 × 10^-4; camera, Up; nominal *P* = 0.0154). Curves show the weighted running enrichment "
-    "score; ticks mark Miller-IM genes in the ranked transcriptome. **C,** Left, unadjusted "
-    "patient-level Miller-IM scores, displayed as individual patients with box summaries. Right, "
-    "model-based exposure coefficients and 95% CIs after adjustment for the myeloid-expression "
-    "proxy; the GSE154795 model additionally retained MGMT and technical covariates. GSE121810 "
-    "showed an adjusted effect of +0.416 (95% CI, +0.138 to +0.694; FDR = 0.00984), whereas "
-    "GSE154795 showed a positive but nonsignificant adjusted effect of +0.427 (95% CI, -0.222 to "
-    "+1.077; FDR = 0.180).\n\nThese cohorts test an exposure-associated coordinated program shift, not"
-    " clinical response prediction. GSE121810 is a whole-tumor bulk RNA assay and cannot localize "
-    "the signal to myeloid cells; GSE154795 provides patient-level myeloid pseudobulk support but "
-    "its patient-level score did not reach FDR < 0.05. The main conclusion therefore concerns "
-    "coordinated rank-based program enrichment under anti-PD-1 exposure. It does not establish "
-    "drug-induced causality, treatment benefit, or validity across all IDH groups; the GSE154795 "
-    "all-IDH sensitivity analysis was not significant. Entry sensitivity and historical "
-    "response-labeled analyses remain supplementary and are not presented as Miller-IM response "
-    "validation.\n"
-)
-legend_path = write_root / "Figure5_legend.md"
-legend_path.write_text(content, encoding="utf-8")
-
-
-content = (
-    "# Figure 5 anti-PD-1 exposure rebuild\n\n"
-    "- A. Timing of anti-PD-1 exposure at tissue collection in both cohorts.\n"
-    "- B. Miller-IM program rank enrichment and agreement with camera in both cohorts.\n"
-    "- C. Raw patient scores alongside myeloid-proxy-adjusted model effects. The GSE154795 patient-score result "
-    "remains nonsignificant (FDR=0.180).\n"
-    "- The layout omits volcano plots, the four-cohort leading-edge UpSet plot and response-prediction cards.\n"
-    "- Main claim. Anti-PD-1 exposure-associated coordinated shift. "
-    "Claims of induction or response prediction fall outside this scope.\n"
-    "- Manifest `"
-    f"{manifest_path}"
-    "`\n- Legend `"
-    f"{legend_path}"
-    "`\n"
-)
-(write_root / "FINAL_RESULT.md").write_text(content, encoding="utf-8")
-
-
 # Check the actual output files and preview canvas dimensions.
 output_paths = [
     manifest_path,
-    legend_path,
-    write_root / "FINAL_RESULT.md",
     pdf_path,
     png_path,
     preview_gray_path,

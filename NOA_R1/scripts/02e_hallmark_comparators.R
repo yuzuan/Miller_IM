@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 # Purpose: Add the frozen human inflammatory Hallmark to the six-set paired CAMERA family.
-# Inputs: step2_extended_specificity/{locked_gene_sets_used,camera_results}.csv, step2_locked_gene_sets.csv if present,
+# Inputs: step2_extended_specificity/camera_results.csv, step2_locked_gene_sets.csv,
 #   step1_primary_recurrence/<dataset>_paired_voom.rds, and the counts in provenance/step1_input_manifest.csv.
 #   Use archived hallmark_original_members.csv and source_versions.csv, or the verified local MSigDB 2025.1 cache.
 # Outputs under step2_hallmark_completion/: hallmark_original_members.csv, hallmark_cohort_members.csv,
@@ -88,7 +88,6 @@ write.csv(hallmark_table, members_path, row.names = FALSE, na = "")
 # Preserve the six historical set positions. Add the original Hallmark as the last set in the family.
 extended_dir <- file.path(revision, "step2_extended_specificity")
 definition_path <- file.path(revision, "step2_locked_gene_sets.csv")
-if (!file.exists(definition_path)) definition_path <- file.path(extended_dir, "locked_gene_sets_used.csv")
 definition_table <- read.csv(definition_path, stringsAsFactors = FALSE)
 set_ids <- unique(definition_table$set_id)
 check("six_historical_sets", length(set_ids) == 6L)

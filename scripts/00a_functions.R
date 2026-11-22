@@ -187,27 +187,6 @@ write_csv_gz <- function(input_table, path_stem, out_dir) {
     stopifnot(file.exists(output_path), file.info(output_path)$size > 0)
 }
 
-# Write a Markdown table, with its existing column order, title, and description.
-write_markdown_table <- function(input_table, file_path, title_text, intro_lines = character()) {
-    display_table <- as.data.frame(input_table, stringsAsFactors = FALSE)
-    header <- paste(colnames(display_table), collapse = " | ")
-    separator <- paste(rep("---", ncol(display_table)), collapse = " | ")
-    display_matrix <- as.matrix(display_table)
-    body <- character(nrow(display_table))
-    for (index in seq_len(nrow(display_table))) body[index] <- paste(display_matrix[index, ], collapse = " | ")
-    lines <- c(
-        paste0("# ", title_text),
-        "",
-        intro_lines,
-        "",
-        paste0("| ", header, " |"),
-        paste0("| ", separator, " |"),
-        paste0("| ", body, " |")
-    )
-    writeLines(lines, file_path, useBytes = TRUE)
-    stopifnot(file.exists(file_path), file.info(file_path)$size > 0)
-}
-
 # Read the cached object as plain, gzip, or double-gzip RDS, in that order.
 # Return the error condition to the caller so the next reader can be attempted.
 read_rds_auto <- function(path) {

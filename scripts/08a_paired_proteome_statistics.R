@@ -2,7 +2,7 @@
 # Purpose  Rebuild Figure 4 and Supplementary Figure 6 from the original paired proteome models.
 # Inputs   PDC000514, MSV000087947 and Zenodo7646550 under write/31_proteomic_validation/source_metadata,
 #          and the public Step 38 and 39 tables. MILLER_IM_DATA_ROOT can point to the input tree.
-# Outputs  Source tables, manifests and notes under write/41_mg_inflammatory_sci_rebuild/{Figure4,SupplementaryFigure6}.
+# Outputs  Source tables and manifests under write/41_mg_inflammatory_sci_rebuild/{Figure4,SupplementaryFigure6}.
 #          The corresponding figures directory contains the PDFs and PNGs under panel_library.
 # Run      Rscript scripts/08a_paired_proteome_statistics.R with R, limma and fgsea.
 # Preserve data.table grouping, joins and sorting to keep input order, formulas, thresholds and seeds stable.
@@ -830,7 +830,7 @@ figure4_panel_4_table <- panel_manifest(
     figure4_plot_dir
 )
 
-# Write the source notes, panel manifest and analysis summary.
+# Record the inputs and the four panel locations.
 figure4_summary_table <- data.table(
     input = c(
         "Step38 paired scRNA pseudobulk GSEA",
@@ -855,33 +855,6 @@ figure4_summary_table <- data.table(
     )
 )
 figure4_write_dir <- dirname(figure4_source_dir)
-writeLines(c(
-    "# Figure4 summary",
-    "",
-    sprintf(
-        "- Main protein result uses only Miller raw20 and PDC unique peptides: %d/%d proteins measured.",
-        pdc$unique$score_tests$n_detected,
-        length(raw20)
-    ),
-    sprintf(
-        "- Patient delta: mean %.3f, 95%% CI %.3f to %.3f, %d/%d recurrence-up, P %.2g.",
-        delta_test_table$mean_delta,
-        delta_test_table$ci_low,
-        delta_test_table$ci_high,
-        delta_test_table$n_recurrence_up,
-        delta_test_table$n_pairs,
-        delta_test_table$sign_flip_p
-    ),
-    sprintf(
-        "- Protein GSEA: NES %.3f, nominal P %.3g.",
-        pdc$unique$score_tests$gsea_NES,
-        pdc$unique$score_tests$gsea_p
-    ),
-    sprintf(
-        "- Cross-modal dual-column panel is limited to %d genes measurable in both GeoMx and PDC.",
-        nrow(dual_modal_table_total)
-    )
-), file.path(figure4_write_dir, "Figure4_summary.md"), useBytes = TRUE)
 figure4_manifest_table_total <- rbindlist(list(
     figure4_panel_1_table, figure4_panel_2_table, figure4_panel_3_table, figure4_panel_4_table
 ))
@@ -1227,21 +1200,6 @@ supp6_input_table <- data.table(
     location = c(pdc_source_dir, msv_source_dir, zenodo_source_root)
 )
 supp6_write_dir <- dirname(supp6_source_dir)
-writeLines(c(
-    "# Supplementary Figure 6 summary",
-    "",
-    sprintf(
-        "- PDC unique/all both measure %d/20 raw20 proteins; main inference remains unique-peptide PDC.",
-        pdc$unique$coverage$n_detected
-    ),
-    sprintf(
-        "- MSV sensitivity is limited to %d/20 proteins and Zenodo to %d/20 proteins.",
-        msv_table_total[analysis == "canonical_regions",
-            n_detected],
-        zenodo_table$n_detected
-    ),
-    sprintf("- GSEA sensitivity is shown on its own NES axis and is not mixed with score delta.")
-), file.path(supp6_write_dir, "SupplementaryFigure6_summary.md"), useBytes = TRUE)
 supp6_manifest_table_total <- rbindlist(list(
     supp6_panel_1_table, supp6_panel_2_table, supp6_panel_3_table, supp6_panel_4_table, supp6_panel_5_table
 ))

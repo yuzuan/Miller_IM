@@ -10,7 +10,7 @@ Run the preparation scripts from the repository root. Script numbers indicate ex
 | Paired recurrence tests | `04_paired_recurrence_statistics.R` | IDH-restricted paired edgeR statistics, nominal single-set fgsea results, gene directions, and GSE174554 exclusion audit |
 | Figure 1 | `05a_cohort_evidence.py`, `05b_paired_recurrence_panels.py`, `05c_recurrence_evidence_layout.py`, `05d_inflammatory_program_panels.py`, `05e_leave_one_patient_out.R`, `05f_shared_genes_and_robustness.py`, `05g_figure1.py` | Six-panel recurrence figure and LOPO audit |
 | Figure 2 | `06a_gse278456_myeloid_spatial_validation.py`, `06b_cell_identity_and_state.py`, `06c_figure2.py` | State localization and marker-leakage control |
-| Figure 3 | `07a_spatial_evidence.py`, `07b_spatial_associations.py`, `07c_spatial_and_paired_expression.py`, `07d_figure3.py` | Paired GeoMx and linked Visium analyses |
+| Figure 3 | `07a_spatial_evidence.py`, `07b_spatial_associations.py`, `07d_figure3.py`, which imports `07c_spatial_and_paired_expression.py` | Paired GeoMx and linked Visium analyses |
 | Figure 4 | `08a_paired_proteome_statistics.R`, `08b_figure4.py` | Paired protein score, protein effects, nominal competitive enrichment |
 | Figure 5 | `09a_pd1_association_analysis.R`, `09b_figure5.py` | Anti-PD-1 gene-set and adjusted patient-score analyses |
 

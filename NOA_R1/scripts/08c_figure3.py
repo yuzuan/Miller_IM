@@ -2,14 +2,14 @@
 """Render Figure 3 with paired GeoMx observations and patient-matched spatial maps.
 
 Inputs
-    Under NOA_LEGACY_ROOT, use the paired scores, shared-gene definition and partial rho table
-    read by scripts/08a_figure3_spatial_panels.py, plus the archived Step 55 assets:
+    Under NOA_LEGACY_ROOT, use the paired scores and shared-gene definition read by 08a,
+    the Step 41 partial correlation table and the following Step 55 assets:
     write/55_figure3_visual_polish/Figure3/source_data/Figure3B_shared_gene_patient_fingerprint_source.csv
     write/55_figure3_visual_polish/Figure3/source_data/Figure3C_spatial_score_atlas_source.csv.gz
     figures/55_figure3_visual_polish/Figure3/Figure3C_spatial_score_atlas.png
 Outputs
     Under _figure_build/55_figure3_visual_polish/Figure3, write Figure3_panel_manifest.csv,
-    Figure3_legend.md, FINAL_RESULT.md and source_data/:
+    and source_data/:
         Figure3A_geomx_paired_dumbbell_source.csv, Figure3B_shared_gene_patient_fingerprint_source.csv,
         Figure3C_spatial_score_atlas_source.csv.gz, Figure3D_partial_rho_effect_strip_source.csv,
         Figure3_visual_polish_preview_layout.csv.
@@ -69,17 +69,6 @@ def save_panel(fig: mpl.figure.Figure, stem: str) -> tuple[Path, Path]:
 
 
 base.save_panel = save_panel
-
-
-def fixed_grayscale_tissue(rgb: np.ndarray) -> np.ndarray:
-    """Return low-contrast grayscale RGB using a fixed conversion for both sections."""
-    luminance = 0.2126 * rgb[:, :, 0] + 0.7152 * rgb[:, :, 1] + 0.0722 * rgb[:, :, 2]
-    display = 0.68 + 0.32 * np.clip(luminance, 0.0, 1.0)
-    grayscale = np.repeat(display[:, :, None], 3, axis=2)
-    return grayscale
-
-
-base.soften_tissue = fixed_grayscale_tissue
 
 
 def panel_b(patient_table: pd.DataFrame) -> dict[str, str]:
@@ -348,40 +337,8 @@ def main() -> None:
     manifest_path = WRITE_ROOT / "Figure3_panel_manifest.csv"
     manifest_table.to_csv(manifest_path, index=False)
 
-    # Retain the frozen Step 55 standalone figure legend.
-    legend_path = WRITE_ROOT / "Figure3_legend.md"
-    legend_text = (
-        "# Figure 3 legend\n\n"
-        "**Figure 3 | Paired myeloid-enriched tissue support and patient-matched spatial context of the "
-        "MG-Inflam20 program.**\n\n"
-        "**A,** Paired IBA1-positive GeoMx MG-Inflam20 scores in 22 IDH-wild-type patients; 16/22 were higher at "
-        "recurrence (mean change 0.273, 95% CI 0.094–0.452; adjusted sign-flip FDR 0.00721). **B,** Changes for "
-        "seven shared leading-edge genes; six were measurable and *CCL4* was absent. **C,** Visium maps of "
-        "MG-Inflam20, MDSC-like, and MES-like scores in two untreated primary IDH-wild-type tumors. "
-        "Both cases, GBM030 and GBM049, "
-        "were also represented in the single-cell atlas used for Figure 2. **D,** Myeloid-adjusted partial Spearman "
-        "correlations were positive for MDSC-like (*r*<sub>s</sub> 0.399/0.355) and MES-like scores (0.280/0.270). "
-        "Panels C,D provide patient-matched, cross-modal context rather than independent patient replication and are "
-        "descriptive because spatial dependence was not modeled. State identity and multicellular niche context are "
-        "distinct analytical levels; these maps do not assign MDSC identity to cells expressing the "
-        "MG-Inflam20 program.\n"
-    )
-    legend_path.write_text(legend_text, encoding="utf-8")
-
-    # Retain the build summary and report the panel count from the manifest records.
-    result_path = WRITE_ROOT / "FINAL_RESULT.md"
-    result_text = (
-        "# Figure 3 visual polish\n\n"
-        f"- A. Paired GeoMx measurements for {len(patient_table)} patients.\n"
-        "- B. Measurable genes are shown. The source table retains every prespecified gene and its measurement "
-        "status.\n"
-        "- C. Both H&E backgrounds use the same grayscale conversion, with a common scale per score.\n"
-        "- D. Partial correlations shown as effect sizes with a zero baseline and a 0–0.5 horizontal axis.\n"
-        f"- Manifest `{manifest_path}`\n"
-        f"- Legend `{legend_path}`\n"
-    )
-    result_path.write_text(result_text, encoding="utf-8")
-    for path in (preview_pdf, preview_png, preview_gray, preview_layout, manifest_path, legend_path, result_path):
+    # Verify the composite files and the source manifest.
+    for path in (preview_pdf, preview_png, preview_gray, preview_layout, manifest_path):
         if not path.is_file() or path.stat().st_size == 0:
             raise ValueError(f"Missing or empty Figure 3 output: {path.name}")
     print(f"Figure 3 panels: {len(records)}")

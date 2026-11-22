@@ -18,7 +18,7 @@ The displayed barcodes, array indices and full-resolution coordinates must match
 No microscope calibration was supplied independently; these are array-registration-based display scale bars. Run the final Figure 3 build to reproduce them:
 
 ```sh
-python NOA_R1/scripts/09b_export_final_figures.py --figures 3 --skip-comparisons
+python NOA_R1/scripts/09b_export_final_figures.py --figures 3
 ```
 
 The final main figure remains a 170-mm-wide, 600-dpi RGB TIFF. The code/data archive includes these small public spatial metadata files, not the large raw expression matrices.

@@ -10,4 +10,5 @@ scipy==1.15.3
 seaborn==0.13.2
 statsmodels==0.14.6
 openpyxl
+xlrd==2.0.2
 pypdf

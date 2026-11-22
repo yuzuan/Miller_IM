@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Purpose: Assemble Figure 1 panels A–F and generate the published legend and gene definition table.
+# Purpose: Assemble Figure 1 panels A–F and write the fixed gene definition table.
 # Inputs: The source tables named below, with published fields such as dataset, gene, logFC, F and NES.
 # Outputs: Source tables and manifests under write, plus PDF and PNG panels under figures.
 # Run: python scripts/05g_figure1.py from the project environment.
@@ -16,7 +16,6 @@ import numpy as np
 import pandas as pd
 from matplotlib.colors import TwoSlopeNorm
 from PIL import Image, ImageDraw, ImageOps
-from scipy.stats import spearmanr
 from importlib import import_module as load_figure_style
 
 figure_style = load_figure_style("00a_functions")
@@ -522,8 +521,7 @@ if __name__ == "__main__":
     if not csv_path.is_file() or csv_path.stat().st_size == 0:
         raise ValueError(f"Missing or empty output: {csv_path.name}")
 
-    # Keep the prespecified 20 genes in their original order.
-    raw20_path = path
+    # Assemble the color preview from the six panels.
     by_panel = {row["panel"]: Path(row["png"]) for row in records}
     layout_rows = [
         {"panel": "A", "left": 180, "top": 120, "right": 3420, "bottom": 820},
@@ -577,12 +575,8 @@ if __name__ == "__main__":
     manifest_table.to_csv(csv_path, index=False)
     if not csv_path.is_file() or csv_path.stat().st_size == 0:
         raise ValueError(f"Missing or empty output: {csv_path.name}")
-    raw20_table = pd.read_csv(raw20_path)
-    raw20 = raw20_table.sort_values("raw20_order")["gene"].drop_duplicates().tolist()
 
-    # Keep the prespecified 20 genes in their original order.
-    raw20_text = ", ".join(raw20)
-    gsea_table = formal_gsea_statistics()
+    # Verify the plotted target genes, shared effect tests and patient omissions.
     rank_table = pd.read_csv(source_out / "Figure1D_shared_raw20_outliers_source.csv")
     shared_count = int(rank_table["shared_leading_edge"].astype(bool).sum())
     other_count = int(
@@ -594,7 +588,6 @@ if __name__ == "__main__":
         raise ValueError(
             f"Unexpected measured Miller-IM partition in Figure1D: shared={shared_count}, other={other_count}"
         )
-    rho, _ = spearmanr(rank_table["rank_stat_GSE174554"], rank_table["rank_stat_GSE274546"])
     label_order = ["CCL4", "CH25H", "FOLR2", "PDK4", "SGK1"]
     labelled = [
         gene
@@ -621,153 +614,10 @@ if __name__ == "__main__":
         )
     lopo_table = pd.read_csv(source_out / "Figure1F_leave_one_patient_out_raw20_gsea.csv")
 
-    # Summarize leave-one-patient-out results with the published denominator and nominal P threshold.
+    # Verify the number of leave-one-patient-out folds against the formal cohort counts.
     lopo_table = lopo_table.loc[lopo_table["run_type"].eq("Leave-one-patient-out")].copy()
     lopo_counts = lopo_table.groupby("dataset").size().astype(int).to_dict()
+    gsea_table = formal_gsea_statistics()
     expected_counts = gsea_table["n_pairs"].astype(int).to_dict()
     if lopo_counts != expected_counts:
         raise ValueError(f"Unexpected Figure1F LOPO counts: {lopo_counts}")
-    positive_counts = (
-        lopo_table.assign(positive=lopo_table["NES"] > 0)
-        .groupby("dataset")["positive"]
-        .sum()
-        .astype(int)
-        .to_dict()
-    )
-
-    significant_counts = (
-        lopo_table.assign(significant=lopo_table["nominal_P"] < 0.05)
-        .groupby("dataset")["significant"]
-        .sum()
-        .astype(int)
-        .to_dict()
-    )
-    max_p_row = lopo_table.loc[lopo_table["nominal_P"].idxmax()]
-    max_p = float(max_p_row["nominal_P"])
-    max_p_dataset = str(max_p_row["dataset"])
-    pair_174554 = int(gsea_table.loc["GSE174554", "n_pairs"])
-
-    pair_274546 = int(gsea_table.loc["GSE274546", "n_pairs"])
-
-    # Format labels as in the published English text for zero, one or multiple terms.
-    if not labelled:
-        labelled_text = "No genes"
-    elif len(labelled) == 1:
-        labelled_text = labelled[0]
-    else:
-        labelled_text = f"{', '.join(labelled[:-1])}, and {labelled[-1]}"
-
-    def legend_p(value: float) -> str:
-        """Return the nominal P value formatted for the published legend."""
-
-        # Use the existing input checks and branch conditions.
-        if value < 0.0001:
-            result = "nominal *P* < 1 × 10⁻⁴"
-            return result
-        formatted = f"{value:.5f}".rstrip("0").rstrip(".")
-        result = f"nominal *P* = {formatted}"
-        return result
-
-    content = (
-        "# Figure 1 legend\n\n**Figure 1 | The 20-gene Miller-derived inflam"
-        "matory microglial program (Miller-IM program) is enriched at recu"
-        "rrence in two independent paired GBM cohorts.**\n\n**A,** Study des"
-        "ign. GSE174554 and GSE274546 were reconstructed independently, th"
-        "eir pan-myeloid compartments were reclustered separately, and rec"
-        "urrence was tested using paired patient-level analyses ("
-        f"{pair_174554}"
-        " and "
-        f"{pair_274546}"
-        " matched IDH-wild-type patients, respectively). **B-C,** Preranke"
-        "d GSEA of the fixed Miller-IM program using paired raw-count pseu"
-        "dobulk differential-expression ranks. Positive normalized enrichm"
-        "ent scores indicate recurrent enrichment. GSE174554: NES = "
-        f"{float(gsea_table.loc['GSE174554', 'NES']):.2f}"
-        ", "
-        f"{legend_p(float(gsea_table.loc['GSE174554', 'pval']))}"
-        "; GSE274546: NES = "
-        f"{float(gsea_table.loc['GSE274546', 'NES']):.2f}"
-        ", "
-        f"{legend_p(float(gsea_table.loc['GSE274546', 'pval']))}"
-        ". **D,** Genome-wide paired rank statistics in the two cohorts. F"
-        "illed red symbols mark the "
-        f"{shared_count}"
-        " measurable Miller-IM genes present in both cohort-specific GSEA "
-        "leading edges; open red symbols mark the other "
-        f"{other_count}"
-        " measurable Miller-IM genes. Only "
-        f"{labelled_text}"
-        " are labelled to avoid over-annotation. Because filled-symbol mem"
-        "bership is defined by the intersection of the two leading edges, "
-        "their joint positive-quadrant position is descriptive and partly "
-        "expected by construction; this panel is not an independent single"
-        "-gene replication test. Genome-wide rank correlation was low (Spe"
-        "arman rₛ = "
-        f"{rho:.2f}"
-        ") and is provided here only as background context, not as the pan"
-        "el claim. **E,** Recurrent-versus-primary log₂ fold changes of th"
-        "e "
-        f"{shared_count}"
-        " shared leading-edge genes. "
-        f"{significant_gene_tests}"
-        "/"
-        f"{n_gene_tests}"
-        " gene-by-cohort tests reached FDR < 0.05, supporting interpretati"
-        "on at the program rather than single-gene level. **F,** Leave-one"
-        "-patient-out sensitivity analysis of the paired pseudobulk Miller"
-        "-IM GSEA. Normalized enrichment scores remained positive in "
-        f"{positive_counts['GSE174554']}"
-        "/"
-        f"{lopo_counts['GSE174554']}"
-        " and "
-        f"{positive_counts['GSE274546']}"
-        "/"
-        f"{lopo_counts['GSE274546']}"
-        " omissions; nominal *P* remained < 0.05 in "
-        f"{significant_counts['GSE174554']}"
-        "/"
-        f"{lopo_counts['GSE174554']}"
-        " and "
-        f"{significant_counts['GSE274546']}"
-        "/"
-        f"{lopo_counts['GSE274546']}"
-        " omissions, respectively. The maximum nominal *P* was "
-        f"{max_p:.4g}"
-        " in "
-        f"{max_p_dataset}"
-        ". Diamonds show full-data estimates; filled circles denote nomina"
-        "l *P* < 0.05.\n\nThe fixed Miller-IM gene set was defined a priori "
-        "from Miller et al. Supplementary Table 2: "
-        f"{raw20_text}"
-        ". Nineteen of 20 genes were measurable in each cohort; AC253572.2"
-        " was not measured. Statistical unit: patient. Panel D is a descri"
-        "ptive cross-cohort background view; panels B, C, and F provide th"
-        "e formal program-level recurrence evidence.\n"
-    )
-    path = write_root / "Figure1_legend.md"
-
-    path.write_text(content, encoding="utf-8")
-    if path.read_text(encoding="utf-8") != content:
-        raise ValueError("Figure1 legend content was not saved completely")
-    legend_path = path
-    content = (
-        "# Figure 1 final reorganization\n\n- Final panel mapping: A design;"
-        " B-C independent Miller-IM GSEA; D all-gene background with share"
-        "d leading-edge Miller-IM genes; E shared leading-edge gene effect"
-        "s; F leave-one-patient-out stability.\n- D contains no naked genom"
-        "e-wide correlation annotation and labels only CCL4, CH25H, FOLR2,"
-        " PDK4, and SGK1.\n- D and E are unique files; the historical Step4"
-        "6 duplicate letter assignment is not carried forward.\n- All six i"
-        "ndependent panels are letter-free. Letters occur only in the revi"
-        "ew preview.\n- Manifest: `"
-        f"{manifest_path}"
-        "`\n- Legend: `"
-        f"{legend_path}"
-        "`\n- Internal raw20 version definition: `"
-        f"{raw20_path}"
-        "`\n"
-    )
-    final_result_path = write_root / "FINAL_RESULT.md"
-    final_result_path.write_text(content, encoding="utf-8")
-    if final_result_path.read_text(encoding="utf-8") != content:
-        raise ValueError("Figure1 final-result note was not saved completely")

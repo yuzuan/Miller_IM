@@ -2,7 +2,7 @@
 # Purpose  Draw Figure 4 scores, protein changes and rankings from the original PDC000514 pairs.
 # Inputs   Step 41 Figure4/source_data patient differences, protein statistics and ranks, Step 39 peptide sensitivity,
 #          and PDC000514/KNCC_Glioblastoma_Evolution_Proteome.tmt11.tsv under MILLER_IM_DATA_ROOT.
-# Outputs  Source tables, Figure4_panel_manifest.csv, Figure4_legend.md and FINAL_RESULT.md under
+# Outputs  Source tables and Figure4_panel_manifest.csv under
 #          write/54_figure4_proteome_rebuild/Figure4. The figures tree contains three panels and the proteome preview.
 # Run      python scripts/08b_figure4.py from the repository root.
 # Keep the existing Python plotting and data libraries to preserve the formulas and PDF layout.
@@ -615,56 +615,9 @@ manifest_table["preview_layout"] = str(source_path)
 manifest_path = write_root / "Figure4_panel_manifest.csv"
 manifest_table.to_csv(manifest_path, index=False)
 
-# Retain the exact legend and notes text.
-
-content = (
-    "# Figure 4 legend\n\n**Figure 4 | Paired tumor proteomes support elevation of the measurable "
-    "Miller-IM protein program at recurrence.**\n\n**A,** Patient-level recurrent-minus-primary "
-    "changes in the prespecified Miller-IM protein score in PDC000514. Unique-peptide protein "
-    "abundances were used for the primary analysis. Each protein was standardized across the "
-    "paired-sample matrix, and each patient score was calculated from proteins measured in both "
-    "specimens of that pair; at least three common proteins were required. Eleven of 20 Miller-IM "
-    "proteins were measurable globally, while individual pairs contained 7-11 common proteins. "
-    "Seventy-two of 105 paired patients were recurrent-higher; the mean paired change was +0.253 "
-    "(95% CI, +0.141 to +0.364; prespecified paired sign-flip P = 4.0 × 10^-5). The diamond and "
-    "interval show the mean and 95% CI. **B,** Patient-level recurrent-minus-primary changes for the"
-    " 11 measurable Miller-IM proteins. Small points denote individual patient pairs; parentheses "
-    "after gene labels show the number of pairs with both measurements. Diamonds and horizontal "
-    "intervals show paired limma effect estimates and approximate 95% CIs. Filled diamonds denote "
-    "full-proteome Benjamini-Hochberg FDR < 0.05. RHOB, GSTM3, FOLR2, PDK4, and CTTNBP2 met this "
-    "threshold. **C,** All 11,320 quantified proteins ranked by the paired moderated t statistic. "
-    "The 11 measurable Miller-IM proteins are overlaid; filled points denote full-proteome FDR < "
-    "0.05. The prespecified Miller-IM gene set showed positive single-set competitive enrichment in "
-    "the unique-peptide analysis (NES = 1.53; nominal P = 0.049), whereas the all-peptide "
-    "sensitivity analysis was nonsignificant and is retained in the supplement.\n\nPDC000514 is a "
-    "whole-tumor TMT proteomic dataset rather than a myeloid-enriched assay. These results therefore"
-    " provide orthogonal support for recurrence-associated elevation of the measurable protein "
-    "program but do not identify the cellular source, prove an MCG1/MCG2 identity, or establish that"
-    " every Miller-IM gene is translated and detected. Clinical metadata available to this analysis "
-    "did not contain an IDH field, so the protein cohort is not labeled as IDH-wild-type.\n"
-)
-legend_path = write_root / "Figure4_legend.md"
-legend_path.write_text(content, encoding="utf-8")
-
-
-content = (
-    "# Figure 4 proteome rebuild\n\n- A: 105 paired-patient Miller-IM protein-score changes.\n- B: "
-    "patient-level distributions for all 11 measurable Miller-IM proteins.\n- C: the 11 measurable "
-    "proteins in the complete paired proteome rank.\n- GeoMx-proteome correlation and the standard "
-    "GSEA curve are not used as main panels.\n- Manifest: `"
-    f"{manifest_path}"
-    "`\n- Legend: `"
-    f"{legend_path}"
-    "`\n"
-)
-(write_root / "FINAL_RESULT.md").write_text(content, encoding="utf-8")
-
-
 # Check the files and preview dimensions produced by this run. Raise on missing or empty output.
 output_paths = [
     manifest_path,
-    legend_path,
-    write_root / "FINAL_RESULT.md",
     pdf_path,
     png_path,
     preview_gray_path,

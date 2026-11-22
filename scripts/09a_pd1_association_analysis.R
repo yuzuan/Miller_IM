@@ -1,8 +1,8 @@
 #!/usr/bin/env Rscript
 # Purpose  Rebuild Figure 5 and Supplementary Figure 7 using the original PD-1 exposure models.
 # Inputs   GSE121810 workbook and GSE154795 RDS and SOFT under MILLER_IM_DATA_ROOT, plus the write/38_* tables.
-# Outputs  Existing CSVs, notes and manifests under write/41_mg_inflammatory_sci_rebuild/{Figure5,SupplementaryFigure7}.
-#          The figures tree contains panel_library PDF and PNG files. Supplementary Figure 7D is CSV and Markdown.
+# Outputs  Source tables and manifests under write/41_mg_inflammatory_sci_rebuild/{Figure5,SupplementaryFigure7}.
+#          The figures tree contains panel_library PDF and PNG files. The algorithm comparison is a CSV table.
 # Run      Rscript scripts/09a_pd1_association_analysis.R [project_root] with R, edgeR, limma and fgsea.
 # Keep the original fields, data.table groups, model designs, seeds and fit order. Render PNGs from PDFs.
 
@@ -1272,23 +1272,6 @@ algorithm_table_total <- rbindlist(list(
     )
 ))
 write_csv(algorithm_table_total, "supp7d_algorithm_summary_table", s7_source_dir)
-s7_write_dir <- dirname(s7_source_dir)
-write_markdown_table(
-    algorithm_table_total[, .(
-        Cohort   = cohort_label,
-        Analysis = analysis_label,
-        `n exp / ctrl` = n_label,
-        fgsea  = fgsea_label,
-        camera = camera_label
-    )],
-    file.path(s7_write_dir, "SupplementaryFigure7D_algorithm_summary.md"),
-    title_text  = "Supplementary Figure 7D algorithm consistency table",
-    intro_lines = c(
-        "This algorithm summary is kept as a formal supplementary table and is not exported as a figure panel.",
-        "It reports fgsea and camera side by side without forcing them onto a shared axis."
-    )
-)
-unlink(file.path(s7_dir, c("supp7d_algorithm_summary_table.pdf", "supp7d_algorithm_summary_table.png")))
 
 figure5_write_dir <- dirname(figure5_source_dir)
 write_csv(gse121810$de, "GSE121810_raw20_edger", figure5_write_dir)
@@ -1303,6 +1286,7 @@ write_csv(gse154795_main$camera, "GSE154795_raw20_camera_auto_strict_idhwt", fig
 write_csv(gse154795_main$score_models, "GSE154795_raw20_score_models_auto_strict_idhwt", figure5_write_dir)
 write_csv(gse154795_main$coverage, "GSE154795_raw20_coverage_auto_strict_idhwt", figure5_write_dir)
 
+s7_write_dir <- dirname(s7_source_dir)
 write_csv(gse154795_reviewed$fgsea, "GSE154795_raw20_fgsea_reviewed_idhwt", s7_write_dir)
 write_csv(gse154795_reviewed$camera, "GSE154795_raw20_camera_reviewed_idhwt", s7_write_dir)
 write_csv(gse154795_reviewed$score_models, "GSE154795_raw20_score_models_reviewed_idhwt", s7_write_dir)
@@ -1354,41 +1338,8 @@ s7_manifest_table$png <- file.path(s7_dir, paste0(s7_manifest_table$stem, ".png"
 s7_manifest_table$pdf <- file.path(s7_dir, paste0(s7_manifest_table$stem, ".pdf"))
 write_csv(s7_manifest_table, "SupplementaryFigure7_panel_manifest", s7_write_dir)
 
-summary_lines <- c(
-    "# Step41 Figure5 / SupplementaryFigure7 rebuild",
-    "",
-    "- Figure5 keeps only the anti-PD-1 exposure-associated coordinated shift story.",
-    "- Main panels use Miller raw20 only; no project-curated 16-gene replacement.",
-    sprintf(
-        "- GSE121810 fgsea NES %.3f, nominal P %s; camera %s, nominal P %s.",
-        gse121810$fgsea$NES[1],
-        build_p_label(gse121810$fgsea$pval[1]),
-        gse121810$camera$Direction[1],
-        build_p_label(gse121810$camera$PValue[1])
-    ),
-    sprintf(
-        "- GSE154795 strict IDH-wt fgsea NES %.3f, nominal P %s; camera %s, nominal P %s.",
-        gse154795_main$fgsea$NES[1],
-        build_p_label(gse154795_main$fgsea$pval[1]),
-        gse154795_main$camera$Direction[1],
-        build_p_label(gse154795_main$camera$PValue[1])
-    ),
-    sprintf(
-        "- Main forest uses model-based 95%% CI; GSE121810 myeloid-adjusted FDR %s, GSE154795 myeloid-adjusted FDR %s.",
-        build_p_label(gse121810$score_models[metric == "raw20_score_myeloid_adjusted", fdr][1]),
-        build_p_label(gse154795_main$score_models[metric == "raw20_score_myeloid_adjusted", fdr][1])
-    ),
-    paste0(
-        "- Historical legacy16 response tables are excluded from the current rebuild ",
-        "and kept only in the obsolete archive."
-    ),
-    "- Supplementary Figure 7D is kept as CSV plus markdown table only; no PNG or PDF is exported."
-)
-write_root <- dirname(figure5_write_dir)
-writeLines(summary_lines, file.path(write_root, "Figure5_SupplementaryFigure7_summary.md"))
-
 cat("panels=", nrow(figure5_manifest_table) + nrow(s7_manifest_table), "\n", sep = "")
 
-# Verify that the manifests refer to nonempty figure files. Review summary table values in the independent rerun.
+# Verify that the manifests refer to nonempty figure files.
 plot_paths <- c(figure5_manifest_table$pdf, figure5_manifest_table$png, s7_manifest_table$pdf, s7_manifest_table$png)
 stopifnot(all(file.exists(plot_paths)), all(file.info(plot_paths)$size > 0))

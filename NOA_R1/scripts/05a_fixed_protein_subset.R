@@ -1,8 +1,7 @@
 #!/usr/bin/env Rscript
 
 # Purpose  Recalculate paired PDC000514 scores for the same proteins in each patient.
-# Inputs   target_top20 from step2_locked_gene_sets.csv or
-#          step2_extended_specificity/locked_gene_sets_used.csv (set_id and gene).
+# Inputs   target_top20 from step2_locked_gene_sets.csv (set_id and gene).
 #          NOA_PUBLIC_DATA_ROOT/write/31_proteomic_validation/source_metadata/PDC000514/
 #          KNCC_Glioblastoma_Evolution_Proteome.tmt11.tsv (Gene and paired Log/Unshared Log columns).
 #          NOA_LEGACY_ROOT/write/54_figure4_proteome_rebuild/Figure4/source_data/
@@ -50,9 +49,6 @@ protein_table <- source_table[is_protein, , drop = FALSE]
 
 # The packaged gene-set table retains the original target genes in author-ranked order.
 definition_path <- file.path(revision, "step2_locked_gene_sets.csv")
-if (!file.exists(definition_path)) {
-    definition_path <- file.path(revision, "step2_extended_specificity", "locked_gene_sets_used.csv")
-}
 definition_table <- read.csv(definition_path)
 target_genes <- definition_table$gene[definition_table$set_id == "target_top20"]
 record_check("target_20", length(target_genes) == 20L)

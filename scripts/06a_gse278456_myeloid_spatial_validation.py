@@ -5,7 +5,7 @@ Inputs: myeloid and spatial H5 files, tissue positions and NIHMS2115262-suppleme
 Outputs: GSE278456_author_marker_sets_used, single_cell_qc, program_gene_coverage, author_like_state_counts,
     patient_state_program_scores and patient_level_state_tests CSVs in the Step 30 write directory,
     plus GSE278456_cell_annotations_scores.csv.gz, GSE276841_spatial_partial_correlations.csv,
-    GSE276841_spot_scores.csv.gz and GSE278456_GSE276841_validation_summary.md.
+    and GSE276841_spot_scores.csv.gz.
     The matching figures directory contains GSE278456_patient_level_Mg_program_by_state and
     GSE276841_spatial_program_maps as PDF and PNG. Run: python scripts/06a_gse278456_myeloid_spatial_validation.py
     --root DIR. The released single-cell and plotting workflow uses Scanpy, AnnData and Seaborn.
@@ -339,35 +339,12 @@ if __name__ == "__main__":
     render_pdf_png(pdf_path, figures / "GSE276841_spatial_program_maps.png", dpi=220)
     plt.close()
 
-    # Summarize the two current statistics tables using their computed values and the original reporting text.
-    saved_test_table = pd.read_csv(write / "GSE278456_patient_level_state_tests.csv")
-    saved_spatial_table = pd.read_csv(write / "GSE276841_spatial_partial_correlations.csv")
-    top_test_table = saved_test_table.loc[saved_test_table["program"].eq("Mg_full")].sort_values("fdr").head(5)
-    lines = [
-        "# GSE278456 / GSE276841 independent validation",
-        "",
-        "## Single-cell patient-level state mapping",
-        "",
-        top_test_table.to_markdown(index=False),
-        "",
-        "## Spatial partial correlations adjusted for total myeloid signal",
-        "",
-        saved_spatial_table.to_markdown(index=False),
-        "",
-        (
-            "Interpretation must remain claim-specific: this cohort is untreated primary IDH-wildtype GBM, "
-            "so it tests phenotype and spatial ecology, not recurrence direction."
-        ),
-    ]
-    (write / "GSE278456_GSE276841_validation_summary.md").write_text("\n".join(lines), encoding="utf-8")
-
-    # Check that the expected tables, figures and summary exist and contain data.
+    # Check that the exported tables exist and contain data.
     for output_name in (
         "GSE278456_author_marker_sets_used.csv", "GSE278456_single_cell_qc.csv", "GSE278456_program_gene_coverage.csv",
         "GSE278456_author_like_state_counts.csv", "GSE278456_patient_state_program_scores.csv",
         "GSE278456_patient_level_state_tests.csv", "GSE278456_cell_annotations_scores.csv.gz",
         "GSE276841_spatial_partial_correlations.csv", "GSE276841_spot_scores.csv.gz",
-        "GSE278456_GSE276841_validation_summary.md",
     ):
         output_path = write / output_name
         if not output_path.is_file() or output_path.stat().st_size == 0:

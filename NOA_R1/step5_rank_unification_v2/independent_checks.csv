@@ -1,5 +1,0 @@
-check,passed,detail
-GSE121810 independent_rank,TRUE,
-GSE121810 independent_fgsea,TRUE,NES 2.18906425394318 P 6.50967140375665e-05
-GSE154795 independent_rank,TRUE,
-GSE154795 independent_fgsea,TRUE,NES 2.1734762047877 P 1.94718865855637e-06

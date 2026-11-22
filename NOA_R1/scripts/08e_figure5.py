@@ -11,7 +11,7 @@ Inputs
     and step2_pd1_camera/camera_results.csv.
 Outputs
     Under _figure_build/56_figure5_pd1_rebuild/Figure5, write Figure5_panel_manifest.csv,
-    Figure5_legend.md, FINAL_RESULT.md and source_data/:
+    and source_data/:
         Figure5A_anti_pd1_exposure_timeline_source.csv, Figure5B_dual_cohort_raw20_enrichment_source.csv.gz,
         Figure5C_patient_scores_and_adjusted_effects_source.csv, Figure5_pd1_preview_layout.csv.
     Under _panels/56_figure5_pd1_rebuild/Figure5, write PDF masters and 600 dpi PNGs for all three panels,
@@ -612,36 +612,8 @@ def main() -> None:
     manifest_path = WRITE_ROOT / "Figure5_panel_manifest.csv"
     manifest_table.to_csv(manifest_path, index=False)
 
-    # Keep the October Figure 5 legend so the figure can build from the code archive alone.
-    legend_path = WRITE_ROOT / "Figure5_legend.md"
-    legend_text = (
-        "# Figure 5. Exploratory anti-PD-1 exposure associations\n\n"
-        "A, GSE121810 compared preoperative/adjuvant-only pembrolizumab (14/15 patients); GSE154795 compared "
-        "PD-1-exposed/unexposed myeloid pseudobulks (13/8). B, Preranked enrichment curves annotated with "
-        "estimated-correlation camera (primary) and fixed-correlation camera (sensitivity) results. "
-        "C, Patient-score distributions and adjusted exposure-associated differences. Points represent patients; "
-        "boxes show medians and interquartile ranges, with whiskers bounded by 1.5 interquartile ranges and "
-        "observed values. Diamonds and bars show adjusted estimates and 95% CIs (filled, FDR < 0.05). Cohorts "
-        "may overlap. Abbreviations: CI, confidence interval; FDR, false discovery rate; IDH, isocitrate "
-        "dehydrogenase; MG-Inflam20, 20-gene representation of the microglial inflammatory program; "
-        "NES, normalized enrichment score; PD-1, programmed cell death protein 1.\n\n"
-        "Alt text: Sampling timelines, nonsignificant correlation-aware tests, and adjusted score differences "
-        "significant only in the first cohort.\n"
-    )
-    legend_path.write_text(legend_text, encoding="utf-8")
-
-    # Keep the existing build summary and verify the written composite and its references.
-    result_path = WRITE_ROOT / "FINAL_RESULT.md"
-    result_text = (
-        "# Figure 5 anti-PD-1 exposure rebuild\n\n"
-        "- A. Anti-PD-1 exposure timing at sampling in the two cohorts.\n"
-        "- B. MG-Inflam20 enrichment curves with archived fgsea and camera results.\n"
-        "- C. Observed patient scores and cohort-specific adjusted associations.\n"
-        f"- Manifest `{manifest_path}`\n"
-        f"- Legend `{legend_path}`\n"
-    )
-    result_path.write_text(result_text, encoding="utf-8")
-    for path in (preview_pdf, preview_png, preview_gray, preview_layout, manifest_path, legend_path, result_path):
+    # Verify the composite files and the source manifest.
+    for path in (preview_pdf, preview_png, preview_gray, preview_layout, manifest_path):
         if not path.is_file() or path.stat().st_size == 0:
             raise ValueError(f"Missing or empty Figure 5 output: {path.name}")
     print(f"Figure 5 panels: {len(records)}")

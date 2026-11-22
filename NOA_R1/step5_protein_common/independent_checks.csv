@@ -1,7 +1,0 @@
-check,passed,detail
-unique_peptides independent_coverage,TRUE,
-unique_peptides fixed_proteins_all105 independent_scores_effect,TRUE,
-unique_peptides original11_complete_patients independent_scores_effect,TRUE,
-all_peptides independent_coverage,TRUE,
-all_peptides fixed_proteins_all105 independent_scores_effect,TRUE,
-all_peptides original11_complete_patients independent_scores_effect,TRUE,

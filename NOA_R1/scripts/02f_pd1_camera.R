@@ -2,9 +2,9 @@
 # Purpose: Reproduce the fixed and estimated correlation CAMERA results for the two formal PD-1 contrasts.
 # Inputs: GSE121810_Prins.PD1NeoAdjv.Jul2018.HUGO.PtID.xlsx (Genes and sample counts);
 #   GSE154795_GBM.AllCell.Integrated.Scaled.ClusterRes.0.1.rds.gz (RNA counts and metadata);
-#   GSE154795_family.soft.gz (sample technical covariates); step2_locked_gene_sets.csv or the archived
-#   step2_extended_specificity/locked_gene_sets_used.csv (set_id, gene); legacy Figure 5 raw20 CAMERA
-#   results and frozen GSE154795_myeloid_sample_audit.csv (ID, condition, IDH_status, n_myeloid_cells).
+#   GSE154795_family.soft.gz (sample technical covariates); step2_locked_gene_sets.csv (set_id, gene);
+#   legacy Figure 5 raw20 CAMERA results and frozen GSE154795_myeloid_sample_audit.csv
+#   (ID, condition, IDH_status, n_myeloid_cells).
 # Outputs under step2_pd1_camera/: camera_results.csv, sample_audit.csv, validation_checks.csv, sessionInfo.txt,
 #   <dataset>_tested_genes.csv, <dataset>_design.csv, GSE154795_cluster_audit.csv and GSE154795_formal_samples.csv.
 # Run: Rscript NOA_R1/scripts/02f_pd1_camera.R NOA_R1
@@ -21,9 +21,6 @@ args <- commandArgs(trailingOnly = TRUE)
 if (length(args) != 1L) stop("Usage: 02f_pd1_camera.R <revision_dir>")
 revision <- normalizePath(args[[1]], mustWork = TRUE)
 definition_path <- file.path(revision, "step2_locked_gene_sets.csv")
-if (!file.exists(definition_path)) {
-    definition_path <- file.path(revision, "step2_extended_specificity", "locked_gene_sets_used.csv")
-}
 definition_table <- read.csv(definition_path)
 signature <- definition_table$gene[definition_table$set_id == "target_top20"]
 stopifnot(length(signature) == 20L)

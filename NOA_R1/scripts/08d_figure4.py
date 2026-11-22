@@ -9,11 +9,8 @@ Inputs
     write/39_independent_miller_mg_inflammatory_figures/Figure4/source_data/Figure4D_peptide_sensitivity_source.csv
     and the archived per-patient protein changes from
     write/54_figure4_proteome_rebuild/Figure4/source_data/Figure4B_raw20_protein_patient_distributions_source.csv.
-    The separate raw reconstruction uses NOA_PUBLIC_DATA_ROOT/write/31_proteomic_validation/source_metadata/
-    PDC000514/KNCC_Glioblastoma_Evolution_Proteome.tmt11.tsv.
 Outputs
-    Under _figure_build/54_figure4_proteome_rebuild/Figure4, write Figure4_panel_manifest.csv,
-    Figure4_legend.md, FINAL_RESULT.md and source_data/:
+    Under _figure_build/54_figure4_proteome_rebuild/Figure4, write Figure4_panel_manifest.csv and source_data/:
         Figure4A_pdc_patient_delta_waterfall_source.csv, Figure4B_raw20_protein_patient_distributions_source.csv,
         Figure4C_full_proteome_rank_landscape_source.csv, Figure4_proteome_preview_layout.csv.
     Under _panels/54_figure4_proteome_rebuild/Figure4, write PDF/PNG pairs for the three data panels,
@@ -25,7 +22,6 @@ Run
 from __future__ import annotations
 
 import importlib
-import re
 from pathlib import Path
 
 import matplotlib as mpl
@@ -132,131 +128,6 @@ def load_gene_statistics() -> pd.DataFrame:
     if observed != expected:
         raise ValueError(f"Unexpected significant MG-Inflam20 proteins: {sorted(observed)}")
     return statistics_table
-
-
-def rebuild_patient_gene_deltas(
-    program_delta_table: pd.DataFrame,
-    gene_statistics_table: pd.DataFrame,
-) -> pd.DataFrame:
-    """Return raw-matrix paired protein changes after matching the prepared effects."""
-    matrix_path = figure_tools.public_data_root(project_root) / (
-        "write/31_proteomic_validation/source_metadata/PDC000514/KNCC_Glioblastoma_Evolution_Proteome.tmt11.tsv"
-    )
-    header_table = pd.read_csv(matrix_path, sep="\t", nrows=0)
-    use_columns = ["Gene"] + [column for column in header_table.columns if column.startswith("Unshared Log KNCC_GBM")]
-    raw_table = pd.read_csv(matrix_path, sep="\t", usecols=use_columns)
-
-    # Keep the frozen MG-Inflam20 definition and the first row of each measured protein.
-    miller_im_genes = [
-        "PDK4", "P2RY13", "USP53", "KLF2", "RHOB", "BHLHE41", "CTTNBP2", "SGK1", "ITM2C", "GSTM3", "CCL3", "CH25H",
-        "P2RY12", "JUN", "SIGLEC8", "KLF6", "FOLR2", "CCL4", "AC253572.2", "NLRP3",
-    ]
-    raw_table = raw_table.loc[
-        raw_table["Gene"].notna()
-        & ~raw_table["Gene"].isin(["Mean", "Median", "StdDev"])
-        & raw_table["Gene"].isin(miller_im_genes)
-    ]
-    raw_table = raw_table.drop_duplicates("Gene", keep="first")
-    raw_table = raw_table.set_index("Gene")
-
-    # Average the unique-peptide abundance columns that belong to the same sample.
-    sample_pattern = re.compile(r"^Unshared Log (KNCC_GBM[0-9]+_T[12]):")
-    source_columns: dict[str, list[str]] = {}
-    for column in raw_table.columns:
-        match = sample_pattern.match(column)
-        if match:
-            source_columns.setdefault(match.group(1), []).append(column)
-    sample_abundances = {}
-    for sample, columns in source_columns.items():
-        sample_abundances[sample] = raw_table[columns].mean(axis=1)
-    abundance_table = pd.DataFrame(sample_abundances)
-
-    # Retain patients with one primary and one recurrent sample.
-    sample_rows = []
-    for sample in abundance_table.columns:
-        patient = re.sub(r"_T[12]$", "", sample)
-        condition = "Recurrent" if sample.endswith("_T2") else "Primary"
-        sample_rows.append((sample, patient, condition))
-    sample_table = pd.DataFrame(sample_rows, columns=["sample", "patient", "condition"])
-    count_table = sample_table.pivot_table(
-        index      = "patient",
-        columns    = "condition",
-        values     = "sample",
-        aggfunc    = "nunique",
-        fill_value = 0,
-    )
-    paired = count_table.index[(count_table.get("Primary", 0) == 1) & (count_table.get("Recurrent", 0) == 1)]
-    if len(paired) != 105:
-        raise ValueError(f"The PDC000514 matrix must contain 105 paired patients, got {len(paired)}")
-
-    # A protein contributes a change only when both values in a pair are finite.
-    records: list[dict[str, object]] = []
-    for patient in sorted(paired):
-        primary_sample = f"{patient}_T1"
-        recurrent_sample = f"{patient}_T2"
-        for gene in abundance_table.index:
-            primary_value = abundance_table.at[gene, primary_sample]
-            recurrent_value = abundance_table.at[gene, recurrent_sample]
-            if np.isfinite(primary_value) and np.isfinite(recurrent_value):
-                records.append(
-                    {
-                        "patient": patient,
-                        "gene": gene,
-                        "Primary": primary_value,
-                        "Recurrent": recurrent_value,
-                        "delta_log2_abundance": recurrent_value - primary_value,
-                    }
-                )
-    delta_table = pd.DataFrame(records)
-
-    # Standardize each protein across paired specimens and score pairs with at least three common proteins.
-    present = [gene for gene in miller_im_genes if gene in abundance_table.index]
-    paired_samples = [item for patient in paired for item in (f"{patient}_T1", f"{patient}_T2")]
-    paired_abundance_table = abundance_table.loc[present, paired_samples]
-    centered_table = paired_abundance_table.sub(paired_abundance_table.mean(axis=1), axis=0)
-    z_expression_table = centered_table.div(paired_abundance_table.std(axis=1, ddof=1), axis=0)
-    reconstructed_scores = []
-    for patient in sorted(paired):
-        primary_values = z_expression_table[f"{patient}_T1"]
-        recurrent_values = z_expression_table[f"{patient}_T2"]
-        common = primary_values.notna() & recurrent_values.notna()
-        if int(common.sum()) < 3:
-            continue
-        reconstructed_scores.append(
-            {
-                "patient": patient,
-                "reconstructed_delta": recurrent_values[common].mean() - primary_values[common].mean(),
-                "reconstructed_n_common": int(common.sum()),
-            }
-        )
-    reconstructed_table = pd.DataFrame(reconstructed_scores)
-    matched_table = program_delta_table[["patient", "delta", "n_common_raw20"]].merge(
-        reconstructed_table, on="patient", how="outer", validate="one_to_one"
-    )
-    if matched_table.isna().any().any():
-        raise ValueError("A PDC000514 patient is missing a reconstructed or archived score")
-    if np.max(np.abs(matched_table["delta"] - matched_table["reconstructed_delta"])) > 1e-10:
-        raise ValueError("Raw-matrix reconstruction differs from the archived PDC000514 patient changes")
-    if not np.array_equal(matched_table["n_common_raw20"], matched_table["reconstructed_n_common"]):
-        raise ValueError("Counts of common proteins differ from the archived PDC000514 patient data")
-
-    # Add the paired counts and the archived full-proteome statistics to each protein record.
-    counts_per_gene = delta_table.groupby("gene").size().rename("n_pairs_gene")
-    signed_delta_table = delta_table.assign(up=delta_table["delta_log2_abundance"] > 0)
-    up_per_gene = signed_delta_table.groupby("gene")["up"].sum().rename("n_recurrence_up_gene")
-    delta_table = delta_table.merge(counts_per_gene, on="gene").merge(up_per_gene, on="gene")
-    delta_table = delta_table.merge(
-        gene_statistics_table[["gene", "logFC", "ci_low", "ci_high", "P.Value", "adj.P.Val", "significant"]],
-        on  = "gene",
-        how = "left",
-        validate = "many_to_one",
-    )
-    observed_means = delta_table.groupby("gene")["delta_log2_abundance"].mean()
-    expected_means = gene_statistics_table.set_index("gene")["logFC"]
-    common = observed_means.index.intersection(expected_means.index)
-    if np.max(np.abs(observed_means.loc[common] - expected_means.loc[common])) > 1e-10:
-        raise ValueError("Raw paired protein changes disagree with the archived limma log fold changes")
-    return delta_table
 
 
 def panel_a(program_delta_table: pd.DataFrame) -> dict[str, str]:
@@ -641,48 +512,8 @@ def main() -> None:
     manifest_path = WRITE_ROOT / "Figure4_panel_manifest.csv"
     manifest_table.to_csv(manifest_path, index=False)
 
-    # Write the archived Figure 4 legend used by the standalone renderer.
-    legend_path = WRITE_ROOT / "Figure4_legend.md"
-    legend_text = (
-        "# Figure 4 legend\n\n"
-        "**Figure 4 | Paired tumor proteomes support elevation of the measurable MG-Inflam20 protein program at "
-        "recurrence.**\n\n"
-        "**A,** Patient-level recurrent-minus-primary changes in the prespecified MG-Inflam20 protein score in "
-        "PDC000514. Unique-peptide protein abundances were used for the primary analysis. Each protein was "
-        "standardized across the paired-sample matrix, and each patient score was calculated from proteins measured "
-        "in both specimens of that pair; at least three common proteins were required. Eleven of 20 MG-Inflam20 "
-        "proteins were measurable globally, while individual pairs contained 7-11 common proteins. Seventy-two of "
-        "105 paired patients were recurrent-higher; the mean paired change was +0.253 (95% CI, +0.141 to +0.364; "
-        "prespecified paired sign-flip P = 4.0 × 10^-5). The diamond and interval show the mean and 95% CI. "
-        "**B,** Patient-level recurrent-minus-primary changes for the 11 measurable MG-Inflam20 proteins. Small "
-        "points denote individual patient pairs; parentheses after gene labels show the number of pairs with both "
-        "measurements. Diamonds and horizontal intervals show paired limma effect estimates and approximate 95% CIs. "
-        "Filled diamonds denote full-proteome Benjamini-Hochberg FDR < 0.05. RHOB, GSTM3, FOLR2, PDK4, and CTTNBP2 "
-        "met this threshold. **C,** All 11,320 quantified proteins ranked by the paired moderated t statistic. "
-        "The 11 measurable MG-Inflam20 proteins are overlaid; filled points denote full-proteome FDR < 0.05. "
-        "The prespecified MG-Inflam20 gene set showed positive single-set competitive enrichment in the unique-peptide "
-        "analysis (NES = 1.53; nominal P = 0.049), whereas the all-peptide sensitivity analysis was nonsignificant "
-        "and is retained in the supplement.\n\n"
-        "PDC000514 is a whole-tumor TMT proteomic dataset rather than a myeloid-enriched assay. These results "
-        "therefore provide orthogonal support for recurrence-associated elevation of the measurable protein program "
-        "but do not identify the cellular source, prove an MCG1/MCG2 identity, or establish that every MG-Inflam20 "
-        "gene is translated and detected. Clinical metadata available to this analysis did not contain an IDH field, "
-        "so the protein cohort is not labeled as IDH-wild-type.\n"
-    )
-    legend_path.write_text(legend_text, encoding="utf-8")
-
-    # Keep the existing panel summary and verify the written composite and manifest.
-    result_path = WRITE_ROOT / "FINAL_RESULT.md"
-    result_text = (
-        "# Figure 4 proteome rebuild\n\n"
-        f"- A. MG-Inflam20 protein score changes for {len(program_delta_table)} patient pairs.\n"
-        f"- B. Patient-level changes for {len(gene_statistics_table)} measurable MG-Inflam20 proteins.\n"
-        "- C. Measurable MG-Inflam20 proteins placed in the complete paired proteome rank.\n"
-        f"- Manifest `{manifest_path}`\n"
-        f"- Legend `{legend_path}`\n"
-    )
-    result_path.write_text(result_text, encoding="utf-8")
-    for path in (preview_pdf, preview_png, preview_gray, preview_layout, manifest_path, legend_path, result_path):
+    # Verify the composite files and the source manifest.
+    for path in (preview_pdf, preview_png, preview_gray, preview_layout, manifest_path):
         if not path.is_file() or path.stat().st_size == 0:
             raise ValueError(f"Missing or empty Figure 4 output: {path.name}")
     print(f"Figure 4 panels: {len(records)}")

@@ -4,8 +4,8 @@
 Inputs: Paired changes and effects from step1_primary_recurrence, random-set draws
     and random_summary.csv from step2_extended_specificity, camera_seven_set_family.csv
     from step2_hallmark_completion, and state abundance and camera results from step3_state_analysis.
-Outputs: supplementary_R1/Supplementary_Figure_S{1,2,3}.{png,tiff}, matching _text.txt
-    files and Supplementary_Figure_S2.pdf. S1 and S3 use temporary PDF masters.
+Outputs: supplementary_R1/Supplementary_Figure_S{1,2,3}.{png,tiff} and Supplementary_Figure_S2.pdf.
+    S1 and S3 use temporary PDF masters.
 Run: python NOA_R1/scripts/09a_supplementary_figures.py
 """
 
@@ -31,14 +31,11 @@ figure_tools = importlib.import_module("00a_functions")
 def write_supplementary_figure(figure, output_dir, stem, *, fixed_canvas=False) -> None:
     """Render the figure's PDF as its original PNG and TIFF exports. No return value."""
     text_objects = [item for item in figure.findobj(match=Text) if item.get_text().strip()]
+    if not text_objects:
+        raise ValueError(f"{stem} has no labels")
     small_labels = [item.get_text() for item in text_objects if item.get_fontsize() < 8.2]
     if small_labels:
         raise ValueError(f"{stem} contains text below 8.2 points: {small_labels[:10]}")
-
-    # Capture the original label list before drawing again to measure raster bounds.
-    labels = [item.get_text() for item in text_objects]
-    label_path = output_dir / f"{stem}_text.txt"
-    label_path.write_text("\n".join(labels) + "\n", encoding="utf-8")
 
     # S1 and S3 retain their original tight crop and padding. S2 uses its full print canvas.
     raster_sizes = {}
@@ -80,8 +77,6 @@ def write_supplementary_figure(figure, output_dir, stem, *, fixed_canvas=False) 
             if not valid_raster:
                 raise ValueError(f"Unexpected raster format or dimensions for {output_path.name}")
 
-    if not label_path.is_file() or label_path.stat().st_size == 0:
-        raise ValueError(f"Missing or empty label file for {stem}")
     plt.close(figure)
 
 
