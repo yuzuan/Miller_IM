@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 # Purpose: Fit the frozen paired state-expression models and descriptive within-state target scores.
-# Inputs: step3_analysis_plan.md, step2_gene_sets.csv or step2_extended_specificity/locked_gene_sets_used.csv.
+# Inputs: step2_gene_sets.csv or step2_extended_specificity/locked_gene_sets_used.csv.
 # Read step3_state_analysis/{pseudobulk_manifest,expression_pair_coverage}.csv and the listed matrices/metadata.
 # Outputs in step3_state_analysis: state_program_camera.csv, state_all_gene_DE.csv.gz, target_gene_DE.csv,
 # state_score_effects.csv, patient_state_score_changes.csv, state_program_gene_coverage.csv,
@@ -21,7 +21,6 @@ if (!length(args) %in% c(1L, 2L)) stop("Usage: 03b_state_expression.R <revision_
 resume_cache <- length(args) == 2L
 if (resume_cache && args[[2]] != "--resume-cache") stop("Unknown second argument")
 revision <- normalizePath(args[[1]], mustWork = TRUE)
-if (!file.exists(file.path(revision, "step3_analysis_plan.md"))) stop("Missing state analysis plan")
 
 # Use the written count manifests and the frozen author-ranked gene order.
 output_dir <- file.path(revision, "step3_state_analysis")

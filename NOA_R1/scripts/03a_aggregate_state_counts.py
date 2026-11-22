@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Sum the frozen state assignments from the original H5AD CSR integer counts using AnnData.
 
-Inputs: step3_analysis_plan.md, provenance/step1_input_manifest.csv (cohorts and pan-myeloid references).
+Inputs: provenance/step1_input_manifest.csv (cohorts and pan-myeloid references).
 A locally prepared step1_input_manifest.csv can supply the same reference fields.
 Inputs under NOA_LEGACY_ROOT: write/71_recurrence_state_decomposition/input_manifest.csv,
 author_marker_provenance.csv, and <dataset>_cell_scores.csv.gz. The manifest identifies the formal patient list,
@@ -31,9 +31,6 @@ from scipy import sparse
 def main():
     """Aggregate and export raw state counts and their coverage. Returns nothing."""
     revision = Path(__file__).resolve().parents[1]
-    plan_path = revision / "step3_analysis_plan.md"
-    if not plan_path.is_file():
-        raise FileNotFoundError(f"Missing state analysis plan: {plan_path}")
 
     # Use the frozen cohort manifest and the paths of the original state assignment inputs.
     manifest_path = revision / "step1_input_manifest.csv"

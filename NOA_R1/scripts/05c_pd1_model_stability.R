@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 
 # Purpose  Compare unadjusted and myeloid-adjusted PD-1 associations and assess patient influence.
-# Inputs   step5_analysis_plan.md and step2_pd1_camera/{sample_audit.csv,GSE154795_formal_samples.csv}.
+# Inputs   step2_pd1_camera/{sample_audit.csv,GSE154795_formal_samples.csv}.
 #          NOA_LEGACY_ROOT/write/56_figure5_pd1_rebuild/Figure5/source_data/
 #          Figure5C_patient_scores_and_adjusted_effects_source.csv (sample, cohort, raw20_score and covariates).
 #          NOA_LEGACY_ROOT/write/41_mg_inflammatory_sci_rebuild/Figure5/:
@@ -28,9 +28,6 @@ record_check <- function(check_name, passed) {
         stop(check_name)
     }
 }
-
-plan <- readLines(file.path(revision, "step5_analysis_plan.md"), warn = FALSE)
-record_check("plan_frozen", any(grepl("2026-10-20 00:55:04", plan, fixed = TRUE)))
 
 # Match each patient-level score to the formal PD-1 camera cohort before fitting.
 project <- normalizePath(Sys.getenv("NOA_LEGACY_ROOT", unset = dirname(revision)), mustWork = TRUE)

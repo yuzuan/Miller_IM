@@ -39,8 +39,7 @@ check(
     "timing",
     "plans_before_new_results",
     None,
-    "Requires the original timestamp-preserving plans and result files. "
-    "See step2_analysis_plan.md for the lock record.",
+    "Requires the original dated protocol and result files.",
 )
 
 # Verify the archived systemic set against the ranked Miller source.
@@ -287,8 +286,7 @@ summary = (
     "# Step 2 independent review\n\n"
     "The checks use the published Miller workbook, archived source tables, and legacy CAMERA reference results.\n\n"
     f"{passed} passed, {failed} failed, and {not_assessed} not assessed. See validation_checks.csv.\n\n"
-    "Chronology requires the original timestamp-preserving plans and outputs. "
-    "The documented protocol lock is in step2_analysis_plan.md.\n"
+    "Chronology requires the original dated protocol and result files.\n"
 )
 summary_path = review_dir / "independent_review.md"
 summary_path.write_text(summary, encoding="utf-8")

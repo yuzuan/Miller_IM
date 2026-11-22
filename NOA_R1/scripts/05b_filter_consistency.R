@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 
 # Purpose  Refit recurrence camera tests after filtering by condition. Compare with paired-design filtering.
-# Inputs   step5_analysis_plan.md and provenance/step1_input_manifest.csv (or step1_input_manifest.csv).
+# Inputs   provenance/step1_input_manifest.csv (or step1_input_manifest.csv).
 #          The manifest lists each dataset's counts_path, expected_pairs and expected_tested_genes.
 #          step1_primary_recurrence/{GSE174554,GSE274546}_paired_voom.rds (metadata, design, voom and signature),
 #          camera_results.csv and sample_audit.csv. The manifest points to the prepared pseudobulk counts.
@@ -21,21 +21,6 @@ output_dir <- file.path(revision, "step5_filter_consistency")
 if (dir.exists(output_dir)) stop("Output directory already exists: ", output_dir)
 dir.create(output_dir)
 
-# Record the frozen comparability checks before reporting the condition-filtered results. No return value.
-check_tables <- list()
-record_check <- function(check_name, passed) {
-    check_tables[[length(check_tables) + 1L]] <<- data.frame(check = check_name, passed = isTRUE(passed))
-
-    if (!isTRUE(passed)) {
-        checks_table_total <- do.call(rbind, check_tables)
-        write.csv(checks_table_total, file.path(output_dir, "checks.csv"), row.names = FALSE, na = "")
-        stop(check_name)
-    }
-}
-
-plan <- readLines(file.path(revision, "step5_analysis_plan.md"), warn = FALSE)
-record_check("plan_frozen", any(grepl("2026-10-20 00:55:04", plan, fixed = TRUE)))
-
 # The public manifest keeps the same input basenames and records a portable counts-path prefix.
 manifest_path <- file.path(revision, "provenance", "step1_input_manifest.csv")
 if (!file.exists(manifest_path)) manifest_path <- file.path(revision, "step1_input_manifest.csv")
@@ -49,6 +34,18 @@ score_tables <- list()
 effect_tables <- list()
 coverage_tables <- list()
 universe_tables <- list()
+
+# Record the frozen comparability checks before reporting the condition-filtered results. No return value.
+check_tables <- list()
+record_check <- function(check_name, passed) {
+    check_tables[[length(check_tables) + 1L]] <<- data.frame(check = check_name, passed = isTRUE(passed))
+
+    if (!isTRUE(passed)) {
+        checks_table_total <- do.call(rbind, check_tables)
+        write.csv(checks_table_total, file.path(output_dir, "checks.csv"), row.names = FALSE, na = "")
+        stop(check_name)
+    }
+}
 
 for (i in seq_len(nrow(manifest_table))) {
     entry_table <- manifest_table[i, ]

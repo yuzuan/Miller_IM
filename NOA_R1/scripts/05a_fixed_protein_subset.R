@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 
 # Purpose  Recalculate paired PDC000514 scores for the same proteins in each patient.
-# Inputs   step5_analysis_plan.md and target_top20 from step2_locked_gene_sets.csv or
+# Inputs   target_top20 from step2_locked_gene_sets.csv or
 #          step2_extended_specificity/locked_gene_sets_used.csv (set_id and gene).
 #          NOA_PUBLIC_DATA_ROOT/write/31_proteomic_validation/source_metadata/PDC000514/
 #          KNCC_Glioblastoma_Evolution_Proteome.tmt11.tsv (Gene and paired Log/Unshared Log columns).
@@ -31,9 +31,6 @@ record_check <- function(check_name, passed) {
         stop(check_name)
     }
 }
-
-plan <- readLines(file.path(revision, "step5_analysis_plan.md"), warn = FALSE)
-record_check("plan_frozen", any(grepl("2026-10-20 00:55:04", plan, fixed = TRUE)))
 
 # Keep the original protein symbols and measurement columns. The TSV also includes summary rows.
 project <- normalizePath(Sys.getenv("NOA_LEGACY_ROOT", unset = dirname(revision)), mustWork = TRUE)

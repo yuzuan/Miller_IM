@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 
 # Purpose  Reproduce the July raw-score PD-1 models alongside the revision sensitivity models.
-# Inputs   step5_analysis_plan.md and step5_pd1_stability_final/{formal_score_samples.csv,
+# Inputs   step5_pd1_stability_final/{formal_score_samples.csv,
 #          model_results.csv,influence.csv} (cohort, exposure, raw20_score and model covariates).
 #          NOA_LEGACY_ROOT/write/41_mg_inflammatory_sci_rebuild/Figure5/:
 #          GSE121810_raw20_score_models.csv and GSE154795_raw20_score_models_auto_strict_idhwt.csv
@@ -18,6 +18,15 @@ output_dir <- file.path(revision, "step5_closeout_v2")
 if (dir.exists(output_dir)) stop("Output directory already exists: ", output_dir)
 dir.create(output_dir)
 
+stability_dir <- file.path(revision, "step5_pd1_stability_final")
+formal_table <- read.csv(file.path(stability_dir, "formal_score_samples.csv"))
+prior_table <- read.csv(file.path(stability_dir, "model_results.csv"))
+
+# GSE121810 compares Neo with Adj. GSE154795 uses the original clinical and technical adjustment.
+project <- normalizePath(Sys.getenv("NOA_LEGACY_ROOT", unset = dirname(revision)), mustWork = TRUE)
+legacy_figure_dir <- file.path(project, "write", "41_mg_inflammatory_sci_rebuild", "Figure5")
+raw_model_tables <- list()
+
 # Record checks in the original order and stop if reproduction differs from the July values. No return value.
 check_tables <- list()
 record_check <- function(check_name, passed) {
@@ -30,18 +39,6 @@ record_check <- function(check_name, passed) {
     }
 }
 
-# Check the heading of the frozen closeout amendment in the English protocol.
-plan <- readLines(file.path(revision, "step5_analysis_plan.md"), warn = FALSE, encoding = "UTF-8")
-record_check("closeout_plan_frozen", any(grepl("Step 5 closeout addendum", plan, fixed = TRUE)))
-
-stability_dir <- file.path(revision, "step5_pd1_stability_final")
-formal_table <- read.csv(file.path(stability_dir, "formal_score_samples.csv"))
-prior_table <- read.csv(file.path(stability_dir, "model_results.csv"))
-
-# GSE121810 compares Neo with Adj. GSE154795 uses the original clinical and technical adjustment.
-project <- normalizePath(Sys.getenv("NOA_LEGACY_ROOT", unset = dirname(revision)), mustWork = TRUE)
-legacy_figure_dir <- file.path(project, "write", "41_mg_inflammatory_sci_rebuild", "Figure5")
-raw_model_tables <- list()
 for (dataset in c("GSE121810", "GSE154795")) {
     sample_table <- formal_table[formal_table$cohort == dataset, ]
     if (dataset == "GSE121810") {

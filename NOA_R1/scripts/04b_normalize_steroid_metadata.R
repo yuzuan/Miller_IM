@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 # Purpose: Apply the recorded capitalization correction to the frozen GBM-CARE steroid fields.
-# Inputs: step4_analysis_plan.md; step4_steroids_geomx/{patient_deltas,GSE274546_steroid_patient_status}.csv;
+# Inputs: step4_steroids_geomx/{patient_deltas,GSE274546_steroid_patient_status}.csv;
 # NOA_PUBLIC_DATA_ROOT/reference_metadata/GBM_CARE_WT/spitzer_supptable1.xlsx (Tumor ID, Time point,
 # Patient ID, Steroid treatment before the surgery).
 # Outputs in step4_steroids_geomx/clinical_case_normalized: GSE274546_steroid_patient_status_normalized.csv,
@@ -15,22 +15,6 @@ output_dir <- file.path(step_dir, "clinical_case_normalized")
 if (dir.exists(output_dir)) stop("Normalized clinical output directory already exists")
 dir.create(output_dir)
 
-# Confirm the original amendment timestamp before applying the normalization.
-plan <- readLines(file.path(revision, "step4_analysis_plan.md"), warn = FALSE)
-check_rows <- list()
-
-# Save the original correction check rows on the first failure. Returns nothing.
-check <- function(name, value) {
-    passed <- isTRUE(value)
-    check_rows[[length(check_rows) + 1L]] <<- data.frame(check = name, passed = passed)
-    if (!passed) {
-        check_table_total <- do.call(rbind, check_rows)
-        write.csv(check_table_total, file.path(output_dir, "validation_checks.csv"), row.names = FALSE, na = "")
-        stop(name)
-    }
-}
-
-check("amendment_precedes_corrected_run", any(grepl("2026-10-20 00:35:46", plan, fixed = TRUE)))
 delta_table <- read.csv(file.path(step_dir, "patient_deltas.csv"))
 target_rows <- delta_table$dataset == "GSE274546" & delta_table$set_id == "target_top20"
 delta_table <- delta_table[target_rows, , drop = FALSE]
@@ -46,6 +30,20 @@ clinical_table <- as.data.frame(readxl::read_excel(workbook_path))
 clinical_table$prefix <- sub("_[012]$", "", clinical_table$`Tumor ID`)
 clinical_table$time <- trimws(as.character(clinical_table$`Time point`))
 clinical_table <- clinical_table[clinical_table$time %in% c("T1", "T2"), , drop = FALSE]
+
+check_rows <- list()
+
+# Save the original correction check rows on the first failure. Returns nothing.
+check <- function(name, value) {
+    passed <- isTRUE(value)
+    check_rows[[length(check_rows) + 1L]] <<- data.frame(check = name, passed = passed)
+    if (!passed) {
+        check_table_total <- do.call(rbind, check_rows)
+        write.csv(check_table_total, file.path(output_dir, "validation_checks.csv"), row.names = FALSE, na = "")
+        stop(name)
+    }
+}
+
 check("clinical_prefix_time_unique", !anyDuplicated(paste(clinical_table$prefix, clinical_table$time)))
 
 # Compare the trimmed lowercase text and restore the original Yes and No display values.

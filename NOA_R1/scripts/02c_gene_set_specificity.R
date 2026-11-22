@@ -315,14 +315,13 @@ write.csv(coverage_table_total, file.path(output_dir, "gene_coverage.csv"), row.
 write.csv(overlap_table_total, file.path(output_dir, "set_overlap.csv"), row.names = FALSE, na = "")
 write.csv(random_table_total, file.path(output_dir, "random_set_summary.csv"), row.names = FALSE, na = "")
 
-# Record the original plan reference, thresholds, seeds, and software versions for traceability.
+# Record thresholds, seeds, and software versions for traceability.
 package_versions <- list()
 for (package in c("edgeR", "limma", "fgsea", "BiocParallel")) {
     package_versions[[package]] <- as.character(packageVersion(package))
 }
 parameters <- list(
     date   = "2026-10-19",
-    plan   = "step2_analysis_plan.md",
     sets   = set_ids,
     comparisons = "five sets per cohort per test method/settings; BH=5",
     camera = list(

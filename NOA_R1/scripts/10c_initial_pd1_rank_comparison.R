@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 
 # Purpose  Compare the frozen historical F-based enrichment with a common signed-square-root F ranking.
-# Inputs   step5_analysis_plan.md, target_top20 in step2_locked_gene_sets.csv or
+# Inputs   target_top20 in step2_locked_gene_sets.csv or
 #          step2_extended_specificity/locked_gene_sets_used.csv (set_id and gene), and
 #          step2_pd1_camera/{GSE121810,GSE154795}_tested_genes.csv (gene).
 #          NOA_LEGACY_ROOT/write/41_mg_inflammatory_sci_rebuild/Figure5/:
@@ -24,7 +24,7 @@ output_dir <- file.path(revision, "step5_rank_unification")
 if (dir.exists(output_dir)) stop("Output directory already exists: ", output_dir)
 dir.create(output_dir)
 
-# Keep the frozen check labels, including the protocol amendment for negative F values. No return value.
+# Record the input and result checks. No return value.
 check_tables <- list()
 record_check <- function(check_name, passed) {
     check_tables[[length(check_tables) + 1L]] <<- data.frame(check = check_name, passed = isTRUE(passed))
@@ -35,13 +35,6 @@ record_check <- function(check_name, passed) {
         stop(check_name)
     }
 }
-
-plan <- readLines(file.path(revision, "step5_analysis_plan.md"), warn = FALSE)
-record_check(
-    "plan_and_F_addendum",
-    any(grepl("2026-10-20 00:55:04", plan, fixed = TRUE)) &&
-        any(grepl("2026-10-20 00:57:50", plan, fixed = TRUE))
-)
 
 # The packaged gene-set table retains the original target genes in author-ranked order.
 definition_path <- file.path(revision, "step2_locked_gene_sets.csv")

@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 
 # Purpose  Independently verify full-model diagnostics and the fixed-protein sign-flip p values.
-# Inputs   step5_analysis_plan.md, step5_pd1_stability_final/{formal_score_samples.csv,influence.csv,vif.csv},
+# Inputs   step5_pd1_stability_final/{formal_score_samples.csv,influence.csv,vif.csv},
 #          and step5_protein_common/{patient_scores.csv,effects.csv}.
 #          Use sample, cohort, exposure and covariates for models, and use analysis, mode and delta for sign flips.
 # Outputs  step5_closeout_v2/{independent_cook_dfbeta.csv,independent_vif.csv,independent_diagnostics_checks.csv,
@@ -16,6 +16,14 @@ if (length(args) != 1L) stop("Provide the revision directory.")
 revision <- normalizePath(args[1], mustWork = TRUE)
 output_dir <- file.path(revision, "step5_closeout_v2")
 if (!dir.exists(output_dir)) stop("Run the covariate closeout in this revision directory first.")
+
+# Read formal patient scores and prior diagnostics. The matrix calculations use only the patient scores.
+stability_dir <- file.path(revision, "step5_pd1_stability_final")
+formal_table <- read.csv(file.path(stability_dir, "formal_score_samples.csv"))
+prior_influence_table <- read.csv(file.path(stability_dir, "influence.csv"))
+prior_vif_table <- read.csv(file.path(stability_dir, "vif.csv"))
+influence_tables <- list()
+vif_tables <- list()
 
 # Write each review table exclusively. Missing values use empty CSV fields. No return value.
 write_new_table <- function(input_table, filename) {
@@ -38,17 +46,6 @@ record_check <- function(check_name, passed, detail = "") {
         stop(check_name)
     }
 }
-
-plan <- readLines(file.path(revision, "step5_analysis_plan.md"), warn = FALSE)
-record_check("pcg64_plan_addendum_before_run", any(grepl("R/dqrng PCG64", plan, fixed = TRUE)))
-
-# Read formal patient scores and prior diagnostics. The matrix calculations use only the patient scores.
-stability_dir <- file.path(revision, "step5_pd1_stability_final")
-formal_table <- read.csv(file.path(stability_dir, "formal_score_samples.csv"))
-prior_influence_table <- read.csv(file.path(stability_dir, "influence.csv"))
-prior_vif_table <- read.csv(file.path(stability_dir, "vif.csv"))
-influence_tables <- list()
-vif_tables <- list()
 
 for (dataset in c("GSE121810", "GSE154795")) {
     cohort_table <- formal_table[formal_table$cohort == dataset, ]

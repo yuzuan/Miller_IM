@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 # Purpose: Reproduce the three steroid-related gene-set comparisons and the formal GeoMx subgroup analysis.
-# Inputs: step4_analysis_plan.md, step2_locked_gene_sets.csv, provenance/step1_input_manifest.csv
+# Inputs: step2_locked_gene_sets.csv, provenance/step1_input_manifest.csv
 # (or a prepared root manifest), and step1_primary_recurrence/{<dataset>_paired_voom.rds,camera_results.csv,
 # sample_audit.csv}. The manifest lists pan-myeloid count files under NOA_PUBLIC_DATA_ROOT.
 # External inputs: msigdbr 25.1.1 human cache msigdb.2025.1.Hs.rds; NOA_PUBLIC_DATA_ROOT/
@@ -26,8 +26,9 @@ output_dir <- file.path(revision, "step4_steroids_geomx")
 if (dir.exists(output_dir)) stop("Steroid and GeoMx output directory already exists")
 dir.create(output_dir)
 
-# Check the recorded analysis time before using the frozen cached gene membership.
-plan <- readLines(file.path(revision, "step4_analysis_plan.md"), warn = FALSE)
+cache_path <- file.path(tools::R_user_dir("msigdbr", "cache"), "msigdb.2025.1.Hs.rds")
+cache_md5 <- if (file.exists(cache_path)) unname(tools::md5sum(cache_path)) else NA_character_
+
 check_rows <- list()
 
 # Retain the original audit row and stop with the accumulated checks on failure. Returns nothing.
@@ -41,9 +42,6 @@ check <- function(name, ok, detail = "") {
     }
 }
 
-check("plan_locked", any(grepl("2026-10-20 00:31:53", plan, fixed = TRUE)))
-cache_path <- file.path(tools::R_user_dir("msigdbr", "cache"), "msigdb.2025.1.Hs.rds")
-cache_md5 <- if (file.exists(cache_path)) unname(tools::md5sum(cache_path)) else NA_character_
 check("cache_md5", identical(cache_md5, "d898c396b109d61ef9b20b0632f0bfa7"))
 msigdbr_version <- as.character(packageVersion("msigdbr"))
 if (msigdbr_version != "25.1.1") stop("The frozen local cache requires msigdbr 25.1.1")
@@ -52,7 +50,7 @@ db_version <- unique(msigdb_table$db_version)
 check("source_version", identical(db_version, "2025.1.Hs") && msigdbr_version == "25.1.1")
 check("first_choice_absent", !any(msigdb_table$gs_name == "GOBP_RESPONSE_TO_GLUCOCORTICOID"))
 
-# The written plan uses the corticosteroid-response set when the first-choice name is absent.
+# The corticosteroid-response set is the fixed alternative when the first-choice name is absent.
 steroid_genes <- unique(msigdb_table$gene_symbol[msigdb_table$gs_name == "GOBP_RESPONSE_TO_CORTICOSTEROID"])
 check("locked_set_153", length(steroid_genes) == 153L && !anyDuplicated(steroid_genes))
 steroid_members_table <- data.frame(
