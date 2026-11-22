@@ -1,6 +1,6 @@
 # Miller-IM NOA R1 revision
 
-Analysis scripts and derived source tables for the October 2026 first revision of the paired glioblastoma study. The [original analysis](../README.md) is in the repository root.
+Final English analysis scripts and derived source tables for the October 2026 first revision of the paired glioblastoma study.
 
 ## Contents
 
@@ -23,7 +23,7 @@ The validator uses the Python 3.10 standard library. It checks the cohort counts
 ## Reproduce the analyses
 
 1. Install the baseline Python, R, and Poppler dependencies in [environment/](../environment/). The revision additionally uses the R packages `jsonlite`, `msigdbr` 25.1.1, and `dqrng`. Hallmark and GO analyses use the official MSigDB 2025.1 human data cache.
-2. Obtain the public data in [the dataset inventory](../config/datasets.tsv) and follow [the original data layout](../docs/data_layout.md) and [workflow](../docs/analysis_workflow.md) to prepare the inputs. Use `NOA_LEGACY_ROOT` if the original analysis outputs are under a separate directory.
+2. Obtain the public data and run the preparation scripts. Set `NOA_LEGACY_ROOT` if the prepared outputs are stored outside the repository root. [Dataset inventory](../config/datasets.tsv) · [Data layout](../docs/data_layout.md) · [Preparation workflow](../docs/analysis_workflow.md)
 3. Set `NOA_PUBLIC_DATA_ROOT` to the external public-data directory. Make the two prepared pseudobulk directories available under that root at the paths in [the input manifest](provenance/step1_input_manifest.csv). Set `NOA_ABDEL_WORKBOOK` to the Abdelfattah Supplementary Data 9 workbook when rebuilding the gene-set definitions. Place the Miller and Sankowski workbooks under `NOA_R1/sources/` using the names in `step2_locked_gene_sets.csv`.
 4. Follow [the revision workflow](ARCHITECTURE.md) in a working copy. Analysis scripts that create a fresh output directory require its name to be free in that copy. The archived tables can be used as reference or as inputs to downstream scripts.
 

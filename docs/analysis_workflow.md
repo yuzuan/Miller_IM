@@ -1,6 +1,6 @@
-# Analysis workflow
+# Prepare inputs for NOA R1
 
-Run commands from the repository root. Scripts are numbered consecutively by data flow. `script_names.tsv` maps the previous names to the current entry points; existing output directory names are retained for compatibility with the frozen tables.
+Run the preparation scripts from the repository root. Script numbers indicate execution order. The NOA R1 scripts read the resulting tables and figures at their documented paths.
 
 | Stage | Scripts | Output used downstream |
 |---|---|---|
@@ -13,7 +13,6 @@ Run commands from the repository root. Scripts are numbered consecutively by dat
 | Figure 3 | `07a_spatial_evidence.py`, `07b_spatial_associations.py`, `07c_spatial_and_paired_expression.py`, `07d_figure3.py` | Paired GeoMx and linked Visium analyses |
 | Figure 4 | `08a_paired_proteome_statistics.R`, `08b_figure4.py` | Paired protein score, protein effects, nominal competitive enrichment |
 | Figure 5 | `09a_pd1_association_analysis.R`, `09b_figure5.py` | Anti-PD-1 gene-set and adjusted patient-score analyses |
-| Final checks | `10a_audit_main_figures.py`, `10b_validate_release.py` | Figure-value audit and frozen-release audit |
 
 After activating the recorded Python environment, `03d_run_gse274546.sh` runs the GSE274546 QC and reannotation stages in sequence. Matrix conversion must already be complete.
 
@@ -30,4 +29,4 @@ The formal recurrence sets are:
 | GSE174554 | 17 | 12,489 | Sample-level crosswalk to Wang Supplementary Table 1 |
 | GSE274546 | 45 | 55,568 | Original-study WHO 2021 IDH-wild-type diagnosis and bulk-DNA confirmation |
 
-The resulting GSE174554 Miller-IM enrichment is NES 2.4290789842 with nominal *P* 4.001362 × 10⁻⁷. The Figure 1 leading-edge intersection contains seven genes and its gene-level effect panel contains 14 cohort-specific tests, with 0/14 at FDR < 0.05.
+Continue with the [NOA R1 workflow](../NOA_R1/ARCHITECTURE.md) after preparing the inputs for the analyses you plan to run.

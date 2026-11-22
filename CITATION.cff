@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: "If you use this code or source data, please cite the associated manuscript."
-title: "Miller-IM recurrence analysis"
+title: "Miller-IM recurrence analysis (NOA R1)"
 type: software
 authors:
   - family-names: Yu
@@ -12,8 +12,8 @@ authors:
   - family-names: Liang
     given-names: Risheng
 repository-code: "https://github.com/yuzuan/Miller_IM"
-date-released: 2026-07-15
-version: 1.0.0
+date-released: 2026-11-22
+version: "NOA R1"
 preferred-citation:
   type: article
   title: "An inflammatory myeloid program is enriched at recurrence in paired IDH-wildtype glioblastomas"
