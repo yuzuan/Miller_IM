@@ -1,0 +1,2 @@
+pathway,pval,padj,log2err,ES,NES,size,leadingEdge,cohort,entry,idh_entry,contrast
+Miller_raw20,0.000290544571159221,0.000290544571159221,0.49849310876659,0.872734341942125,1.75124003154227,19,PDK4;SGK1;CTTNBP2;RHOB;KLF2;ITM2C;NLRP3;CH25H;P2RY12,GSE154795,strict,strict_idhwt,PD1_minus_UntreatedRecurrent

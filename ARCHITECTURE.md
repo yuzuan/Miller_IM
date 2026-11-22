@@ -1,6 +1,6 @@
 # Data preparation for NOA R1
 
-The repository-level scripts generate the inputs used by NOA R1. Script numbers indicate execution order. Output directory names match the paths read by the revision scripts.
+The [NOA R1 figure build](NOA_R1/README.md#rebuild-figures-and-tables) uses the panel source tables and archived Figure 3C background under `NOA_R1/inputs/`. The repository-level scripts prepare inputs from raw data. Script numbers indicate execution order. Output directory names match the paths read by the revision scripts.
 
 | Module | Role | Main inputs | Main consumers |
 |---|---|---|---|

@@ -1,0 +1,5 @@
+"dataset","threshold","formal_testable","signature","n_pairs","n_input_genes","n_present_genes","coverage","mean_delta","median_delta","positive_pairs","positive_fraction","p_value","sign_flip_exact","n_permutations"
+"GSE174554",20,TRUE,"Miller_Microglial_Inflammatory_raw_top20",17,20,19,0.95,0.431304096233821,0.405202133238742,12,0.705882352941177,0.03289794921875,TRUE,131072
+"GSE174554",50,FALSE,"Miller_Microglial_Inflammatory_raw_top20",7,20,19,0.95,0.654427090894923,0.685552199746612,5,0.714285714285714,0.0625,TRUE,128
+"GSE274546",20,TRUE,"Miller_Microglial_Inflammatory_raw_top20",45,20,19,0.95,0.16751001649045,0.12740343380326,26,0.577777777777778,0.112278877211228,FALSE,1e+05
+"GSE274546",50,TRUE,"Miller_Microglial_Inflammatory_raw_top20",42,20,19,0.95,0.184485141657987,0.154959018852964,24,0.571428571428571,0.0821591784082159,FALSE,1e+05

@@ -1,0 +1,3 @@
+cohort,cohort_label,metric,metric_label,comparator,n_positive,n_negative,effect,conf_low,conf_high,p_value,fdr,n_label,fdr_label
+GSE121810,GSE121810,raw20_score,Raw score,Neo_minus_Adj,14,15,0.437168628285404,0.00206507761077362,0.872272178960034,0.0489965587472647,0.0489965587472647,14 / 15,0.049
+GSE121810,GSE121810,raw20_score_myeloid_adjusted,Myeloid-adjusted,Neo_minus_Adj,14,15,0.416017028595708,0.137781145186939,0.694252912004477,0.00492100468020317,0.00984200936040635,14 / 15,0.010

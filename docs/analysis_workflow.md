@@ -1,6 +1,6 @@
 # Prepare inputs for NOA R1
 
-Run the preparation scripts from the repository root. Script numbers indicate execution order. The NOA R1 scripts read the resulting tables and figures at their documented paths.
+Use this workflow to prepare the source data from public deposits. To render the five main figures from the supplied inputs, follow the [NOA R1 figure build](../NOA_R1/README.md#rebuild-figures-and-tables). Run preparation scripts from the repository root in script-number order.
 
 | Stage | Scripts | Output used downstream |
 |---|---|---|

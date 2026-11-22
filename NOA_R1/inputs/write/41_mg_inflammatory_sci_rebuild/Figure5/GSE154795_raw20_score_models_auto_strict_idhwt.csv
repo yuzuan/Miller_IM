@@ -1,0 +1,3 @@
+cohort,cohort_label,metric,metric_label,comparator,n_positive,n_negative,effect,conf_low,conf_high,p_value,entry,idh_entry,fdr,n_label,fdr_label
+GSE154795,GSE154795,raw20_score,Raw score,PD1_minus_recurrent,13,8,0.419426648631064,-0.200990633685098,1.03984393094723,0.170149027915721,strict,strict_idhwt,0.180119103326531,13 / 8,0.180
+GSE154795,GSE154795,raw20_score_myeloid_adjusted,Myeloid-adjusted,PD1_minus_recurrent,13,8,0.427369843346401,-0.222316569830202,1.077056256523,0.180119103326531,strict,strict_idhwt,0.180119103326531,13 / 8,0.180
